@@ -1,4 +1,27 @@
 .settings-modal {
+  .delivery-target-panel {
+    margin: 12px 0 4px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border: 1px dashed #dbe3ef;
+    border-radius: 8px;
+  }
+
+  .delivery-target-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .delivery-target-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
   .settings-master {
     display: flex;
     align-items: center;
@@ -59,6 +82,15 @@
     overflow-y: auto;
     max-height: 460px;
   }
+
+  .settings-panel-section {
+    display: none;
+
+    &.active {
+      display: block;
+    }
+  }
+
 
   .channel-header {
     margin-bottom: 18px;

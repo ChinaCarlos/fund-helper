@@ -16,6 +16,9 @@
 export const NOTIFICATION_CONFIG_VERSION = 1 as const;
 export const NOTIFICATION_CONFIG_STORAGE_KEY = 'yjb-notification-config';
 
+/** 已废弃：旧版虚拟单聊投递 ID，保存时自动剔除。 */
+export const FEISHU_BOT_P2P_TARGET_ID = '__feishu:bot_p2p';
+
 export type NotifyChannel = 'dingtalk' | 'feishu' | 'wecom';
 export type IntegrationKind = 'webhook' | 'app';
 
@@ -52,6 +55,10 @@ export interface DingTalkAppIntegration {
   enabled: boolean;
   clientId: string;
   clientSecret: string;
+  agentId: string;
+  receiveChatIds: string[];
+  receiveChatId?: string;
+  receiveUserId: string;
 }
 
 export interface FeishuAppIntegration {
@@ -60,6 +67,9 @@ export interface FeishuAppIntegration {
   appSecret: string;
   encryptKey: string;
   verificationToken: string;
+  receiveChatIds: string[];
+  receiveChatId?: string;
+  receiveOpenId: string;
 }
 
 /** 企业微信群机器人：Webhook URL 中的 key 参数 */
@@ -76,6 +86,9 @@ export interface WecomAppIntegration {
   agentId: string;
   callbackToken: string;
   callbackAesKey: string;
+  receiveChatIds: string[];
+  receiveChatId?: string;
+  receiveUserId: string;
 }
 
 export interface DingTalkChannel {
@@ -126,7 +139,14 @@ function emptyWecomWebhook(): WecomWebhookIntegration {
 }
 
 function emptyDingTalkApp(): DingTalkAppIntegration {
-  return { enabled: false, clientId: '', clientSecret: '' };
+  return {
+    enabled: false,
+    clientId: '',
+    clientSecret: '',
+    agentId: '',
+    receiveChatIds: [],
+    receiveUserId: '',
+  };
 }
 
 function emptyFeishuApp(): FeishuAppIntegration {
@@ -136,6 +156,8 @@ function emptyFeishuApp(): FeishuAppIntegration {
     appSecret: '',
     encryptKey: '',
     verificationToken: '',
+    receiveChatIds: [],
+    receiveOpenId: '',
   };
 }
 
@@ -147,7 +169,34 @@ function emptyWecomApp(): WecomAppIntegration {
     agentId: '',
     callbackToken: '',
     callbackAesKey: '',
+    receiveChatIds: [],
+    receiveUserId: '',
   };
+}
+
+function normalizeChatIds(rawIds: unknown, legacyId?: unknown): string[] {
+  const ids: string[] = [];
+  if (Array.isArray(rawIds)) {
+    for (const item of rawIds) {
+      const value = trim(item);
+      if (value && !ids.includes(value)) ids.push(value);
+    }
+  }
+  const legacy = trim(legacyId);
+  if (legacy && !ids.includes(legacy)) ids.unshift(legacy);
+  return ids;
+}
+
+function hasAppDeliveryTarget(
+  channel: 'dingtalk' | 'feishu' | 'wecom',
+  app: DingTalkAppIntegration | FeishuAppIntegration | WecomAppIntegration,
+): boolean {
+  const chatIds = normalizeChatIds(app.receiveChatIds, app.receiveChatId).filter(
+    (id) => id !== FEISHU_BOT_P2P_TARGET_ID,
+  );
+  if (chatIds.length > 0) return true;
+  if (channel === 'feishu') return false;
+  return Boolean(trim((app as DingTalkAppIntegration | WecomAppIntegration).receiveUserId));
 }
 
 export function createDefaultNotificationConfig(): NotificationConfig {
@@ -205,6 +254,10 @@ function mergeDingTalkApp(
     clientId: raw.clientId !== undefined ? trim(raw.clientId) : base.clientId,
     clientSecret:
       raw.clientSecret !== undefined ? trim(raw.clientSecret) : base.clientSecret,
+    agentId: raw.agentId !== undefined ? trim(raw.agentId) : base.agentId,
+    receiveChatIds: normalizeChatIds(raw.receiveChatIds, raw.receiveChatId ?? base.receiveChatId),
+    receiveUserId:
+      raw.receiveUserId !== undefined ? trim(raw.receiveUserId) : base.receiveUserId,
   };
 }
 
@@ -222,6 +275,10 @@ function mergeFeishuApp(
       raw.verificationToken !== undefined
         ? trim(raw.verificationToken)
         : base.verificationToken,
+    receiveChatIds: normalizeChatIds(raw.receiveChatIds, raw.receiveChatId ?? base.receiveChatId).filter(
+      (id) => id !== FEISHU_BOT_P2P_TARGET_ID,
+    ),
+    receiveOpenId: '',
   };
 }
 
@@ -239,6 +296,9 @@ function mergeWecomApp(
       raw.callbackToken !== undefined ? trim(raw.callbackToken) : base.callbackToken,
     callbackAesKey:
       raw.callbackAesKey !== undefined ? trim(raw.callbackAesKey) : base.callbackAesKey,
+    receiveChatIds: normalizeChatIds(raw.receiveChatIds, raw.receiveChatId ?? base.receiveChatId),
+    receiveUserId:
+      raw.receiveUserId !== undefined ? trim(raw.receiveUserId) : base.receiveUserId,
   };
 }
 
@@ -333,6 +393,9 @@ function parseDingTalkChannel(raw: unknown): DingTalkChannel {
           enabled: Boolean(appRaw.enabled),
           clientId: trim(appRaw.clientId),
           clientSecret: trim(appRaw.clientSecret),
+          agentId: trim(appRaw.agentId),
+          receiveChatIds: normalizeChatIds(appRaw.receiveChatIds, appRaw.receiveChatId),
+          receiveUserId: trim(appRaw.receiveUserId),
         }
       : emptyDingTalkApp();
   return { webhook: parseWebhook(item.webhook), app };
@@ -352,6 +415,10 @@ function parseFeishuChannel(raw: unknown): FeishuChannel {
           appSecret: trim(appRaw.appSecret),
           encryptKey: trim(appRaw.encryptKey),
           verificationToken: trim(appRaw.verificationToken),
+          receiveChatIds: normalizeChatIds(appRaw.receiveChatIds, appRaw.receiveChatId).filter(
+            (id) => id !== FEISHU_BOT_P2P_TARGET_ID,
+          ),
+          receiveOpenId: '',
         }
       : emptyFeishuApp();
   return { webhook: parseWebhook(item.webhook), app };
@@ -372,6 +439,8 @@ function parseWecomChannel(raw: unknown): WecomChannel {
           agentId: trim(appRaw.agentId),
           callbackToken: trim(appRaw.callbackToken),
           callbackAesKey: trim(appRaw.callbackAesKey),
+          receiveChatIds: normalizeChatIds(appRaw.receiveChatIds, appRaw.receiveChatId),
+          receiveUserId: trim(appRaw.receiveUserId),
         }
       : emptyWecomApp();
   return { webhook: parseWecomWebhook(item.webhook), app };
@@ -449,7 +518,8 @@ export function isChannelConfigured(
       wecom.app.enabled &&
       Boolean(trim(wecom.app.corpId)) &&
       Boolean(trim(wecom.app.corpSecret)) &&
-      Boolean(trim(wecom.app.agentId));
+      Boolean(trim(wecom.app.agentId)) &&
+      hasAppDeliveryTarget('wecom', wecom.app);
     return webhookOk || appOk;
   }
   if (channel === 'dingtalk') {
@@ -458,13 +528,17 @@ export function isChannelConfigured(
     const appOk =
       dt.app.enabled &&
       Boolean(trim(dt.app.clientId)) &&
-      Boolean(trim(dt.app.clientSecret));
+      Boolean(trim(dt.app.clientSecret)) &&
+      hasAppDeliveryTarget('dingtalk', dt.app);
     return webhookOk || appOk;
   }
   const fs = cfg as FeishuChannel;
   const webhookOk = fs.webhook.enabled && Boolean(trim(fs.webhook.url));
   const appOk =
-    fs.app.enabled && Boolean(trim(fs.app.appId)) && Boolean(trim(fs.app.appSecret));
+    fs.app.enabled &&
+    Boolean(trim(fs.app.appId)) &&
+    Boolean(trim(fs.app.appSecret)) &&
+    hasAppDeliveryTarget('feishu', fs.app);
   return webhookOk || appOk;
 }
 
@@ -497,6 +571,9 @@ export function validateNotificationSettings(config: NotificationConfig): string
   if (dt.app.enabled) {
     if (!trim(dt.app.clientId)) return '请填写钉钉 Client ID';
     if (!trim(dt.app.clientSecret)) return '请填写钉钉 Client Secret';
+    if (!hasAppDeliveryTarget('dingtalk', dt.app)) {
+      return '请选择钉钉投递会话或填写用户 ID';
+    }
   }
 
   const fs = merged.channels.feishu;
@@ -505,6 +582,9 @@ export function validateNotificationSettings(config: NotificationConfig): string
   if (fs.app.enabled) {
     if (!trim(fs.app.appId)) return '请填写飞书 App ID';
     if (!trim(fs.app.appSecret)) return '请填写飞书 App Secret';
+    if (!hasAppDeliveryTarget('feishu', fs.app)) {
+      return '请选择飞书投递会话，或点击「创建专属通知群」';
+    }
   }
 
   const wc = merged.channels.wecom;
@@ -515,6 +595,9 @@ export function validateNotificationSettings(config: NotificationConfig): string
     if (!trim(wc.app.corpId)) return '请填写企业微信 Corp ID';
     if (!trim(wc.app.corpSecret)) return '请填写企业微信 Corp Secret';
     if (!trim(wc.app.agentId)) return '请填写企业微信 Agent ID';
+    if (!hasAppDeliveryTarget('wecom', wc.app)) {
+      return '请选择企业微信投递会话或填写用户 ID';
+    }
   }
 
   return null;

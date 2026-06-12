@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "enabled": true,
+  "trigger": {
+    "frequency": "manual",
+    "tradingHoursOnly": false
+  },
+  "channels": {
+    "dingtalk": {
+      "webhook": {
+        "enabled": false,
+        "url": "",
+        "signingSecret": ""
+      },
+      "app": {
+        "enabled": false,
+        "clientId": "",
+        "clientSecret": "",
+        "agentId": "",
+        "receiveChatIds": [],
+        "receiveChatId": "",
+        "receiveUserId": ""
+      }
+    },
+    "feishu": {
+      "webhook": {
+        "enabled": false,
+        "url": "",
+        "signingSecret": ""
+      },
+      "app": {
+        "enabled": true,
+        "appId": "cli_aaa3a681f1391cb3",
+        "appSecret": "3LrN86JIOgB4t4ikqkLbPePKdelEjjDY",
+        "encryptKey": "",
+        "verificationToken": "",
+        "receiveChatIds": [
+          "oc_b98b4b4853c06f75fa49ed3ee24e2387"
+        ],
+        "receiveChatId": "",
+        "receiveOpenId": ""
+      }
+    },
+    "wecom": {
+      "webhook": {
+        "enabled": false,
+        "webhookKey": "",
+        "remark": ""
+      },
+      "app": {
+        "enabled": false,
+        "corpId": "",
+        "corpSecret": "",
+        "agentId": "",
+        "callbackToken": "",
+        "callbackAesKey": "",
+        "receiveChatIds": [],
+        "receiveChatId": "",
+        "receiveUserId": ""
+      }
+    }
+  }
+}

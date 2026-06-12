@@ -12,6 +12,22 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from qrcode.constants import ERROR_CORRECT_H
 
+from app.notify.delivery_catalog import list_delivery_chats
+from app.notify.feishu_group import create_feishu_notification_group
+from app.notify.schemas import (
+    ConnectivityTestResponse,
+    DeliveryChatOptionModel,
+    DeliveryTargetsBody,
+    DeliveryTargetsResponse,
+    FeishuCreateGroupBody,
+    FeishuCreateGroupResponse,
+    NotifyChannel,
+    NotifyConfigBody,
+    NotifyConfigResponse,
+    NotifyTestBody,
+    PushResponse,
+)
+from app.notify.service import push_portfolio_notification, test_channel_connectivity
 from app.yjb.auth_store import normalize_avatar_url
 from app.yjb.calculator import normalize_income_line, normalize_income_lines
 from app.yjb.client import YjbApiError, YjbClient
@@ -249,3 +265,102 @@ async def remove_fund_hold(
         lambda c: c.remove_fund_hold(account_id=account_id, fund_ids=fund_ids),
     )
     return {"ok": True, "data": data}
+
+
+def _require_login(request: Request) -> None:
+    session = request.app.state.auth_store.session
+    if not session.is_valid:
+        raise HTTPException(status_code=401, detail="未登录")
+
+
+@router.get("/notify/config", response_model=NotifyConfigResponse)
+async def notify_config_get(request: Request) -> NotifyConfigResponse:
+    """读取服务端持久化的通知配置（含各渠道发送对象）。"""
+    _require_login(request)
+    config = request.app.state.notify_config_store.load()
+    return NotifyConfigResponse(config=config)
+
+
+@router.put("/notify/config", response_model=NotifyConfigResponse)
+async def notify_config_put(request: Request, body: NotifyConfigBody) -> NotifyConfigResponse:
+    """保存通知配置到 data/notification-config.json。"""
+    _require_login(request)
+    saved = request.app.state.notify_config_store.save(body.config)
+    return NotifyConfigResponse(config=saved)
+
+
+@router.post("/notify/feishu/create-notification-group", response_model=FeishuCreateGroupResponse)
+async def notify_feishu_create_group(
+    request: Request,
+    body: FeishuCreateGroupBody,
+) -> FeishuCreateGroupResponse:
+    """为当前用户创建飞书专属通知群（你 + 机器人），并返回 chat_id。"""
+    _require_login(request)
+    app = body.config.channels.feishu.app
+    ok, message, result = await create_feishu_notification_group(
+        app_id=app.appId,
+        app_secret=app.appSecret,
+        mobile=body.mobile,
+        group_name=body.groupName,
+    )
+    if not ok or result is None:
+        raise HTTPException(status_code=400, detail=message)
+    return FeishuCreateGroupResponse(
+        status="success",
+        message=message,
+        chatId=result.chat_id,
+        chatName=result.name,
+        reused=result.reused,
+    )
+
+
+@router.post("/notify/delivery-targets/{channel}", response_model=DeliveryTargetsResponse)
+async def notify_delivery_targets(
+    channel: NotifyChannel,
+    request: Request,
+    body: DeliveryTargetsBody,
+) -> DeliveryTargetsResponse:
+    """根据应用凭据拉取可投递会话列表，供设置页多选。"""
+    _require_login(request)
+    chats, message, status = await list_delivery_chats(channel, body.config)
+    return DeliveryTargetsResponse(
+        status=status,  # type: ignore[arg-type]
+        message=message,
+        chats=[
+            DeliveryChatOptionModel(id=item.id, name=item.name, kind=item.kind)
+            for item in chats
+        ],
+    )
+
+
+@router.post("/notify/test", response_model=ConnectivityTestResponse)
+async def notify_test(request: Request, body: NotifyTestBody) -> ConnectivityTestResponse:
+    """测试钉钉 / 飞书 / 企业微信通知连通性（发送持仓收益模板消息）。"""
+    _require_login(request)
+
+    snapshot: dict | None = None
+    try:
+        snapshot = await request.app.state.poller.fetch_snapshot()
+    except YjbApiError:
+        snapshot = None
+
+    return await test_channel_connectivity(body.channel, body.config, snapshot=snapshot)
+
+
+@router.post("/notify/push", response_model=PushResponse)
+async def notify_push(request: Request) -> PushResponse:
+    """按模板推送当前持仓收益到已启用的通知渠道（读取 data/ 中的配置）。"""
+    _require_login(request)
+
+    config = request.app.state.notify_config_store.load()
+    if config is None:
+        return PushResponse(status="skipped", message="未配置通知，请先在设置中保存", results=[])
+
+    try:
+        snapshot = await request.app.state.poller.fetch_snapshot()
+    except YjbApiError as exc:
+        if exc.status_code == 401:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return await push_portfolio_notification(config, snapshot)

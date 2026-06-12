@@ -23,6 +23,7 @@ import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import { SummaryCard } from "@/components/SummaryCard/SummaryCard";
 import { api } from "@/api/client";
 import { usePortfolio } from "@/hooks/usePortfolio";
+import { tryPushAfterRefresh } from "@/utils/notificationPush";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -40,9 +41,20 @@ export function Dashboard() {
   });
 
   const handleRefresh = useCallback(async () => {
-    const ok = await refresh();
-    if (ok) {
-      message.success("刷新成功");
+    const snapshot = await refresh();
+    if (!snapshot) return;
+
+    message.success("刷新成功");
+
+    const pushResult = await tryPushAfterRefresh({
+      trading: snapshot.trading,
+    });
+    if (pushResult?.status === "success") {
+      message.success(`通知已推送：${pushResult.message}`);
+    } else if (pushResult?.status === "partial") {
+      message.warning(`通知部分推送：${pushResult.message}`);
+    } else if (pushResult?.status === "error") {
+      message.warning(`通知推送失败：${pushResult.message}`);
     }
   }, [message, refresh]);
 

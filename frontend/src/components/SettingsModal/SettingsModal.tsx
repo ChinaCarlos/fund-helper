@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { api } from '@/api/client';
 import {
   Alert,
   App,
@@ -63,29 +64,29 @@ const CHANNEL_INFO: Record<
   dingtalk: {
     icon: '钉',
     title: 'DingTalk',
-    subtitle: '通过钉钉群机器人或企业应用发送持仓收益通知。',
+    subtitle: '群机器人 Webhook 推送，或企业应用凭据 + 投递会话（参考 Hermes HOME_CHANNEL）。',
     guideUrl: 'https://open.dingtalk.com/document/robots/custom-robot-access',
     guideText: '打开钉钉设置指南',
     credentialsDesc:
-      '群机器人：在群设置中添加自定义机器人并复制 Webhook。应用：在开发者后台创建应用，复制 Client ID 与 Client Secret。',
+      'WorkBuddy 风格：在开放平台创建应用，填写 Client ID/Secret，点「测试连通性」验证。群通知优先用 Webhook；应用模式填写要接收通知的会话 ID（cid 开头）。',
   },
   feishu: {
     icon: '飞',
     title: 'Feishu / Lark',
-    subtitle: '通过飞书群机器人或企业应用发送持仓收益通知。',
+    subtitle: '群机器人 Webhook 推送，或企业应用凭据 + 投递会话（参考 Hermes FEISHU_HOME_CHANNEL）。',
     guideUrl: 'https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot',
     guideText: '打开飞书设置指南',
     credentialsDesc:
-      '群机器人：在群设置中添加自定义机器人并复制 Webhook。应用：创建飞书应用并配置机器人能力，复制 App ID 与 App Secret。',
+      'WorkBuddy 风格：填写 App ID/Secret 后测试连通性。群通知优先用 Webhook；应用模式填写 oc_ 开头的会话 ID（群聊或单聊均可）。',
   },
   wecom: {
     icon: '企',
     title: 'WeCom',
-    subtitle: '通过企业微信群机器人（仅发送）或自建应用（双向）推送通知。',
+    subtitle: '群机器人 Webhook 推送，或自建应用凭据 + 投递目标。',
     guideUrl: 'https://developer.work.weixin.qq.com/document/path/91770',
     guideText: '打开企业微信设置指南',
     credentialsDesc:
-      '群机器人：在群聊中添加机器人，复制 Webhook URL 中的 key 参数。应用：创建自建应用并配置回调，填写 Corp ID、Secret 与 Agent ID。',
+      'WorkBuddy 风格：填写 Corp 凭据后测试连通性。群通知优先用 Webhook Key；应用模式填写会话 ID 或成员 User ID。',
   },
 };
 
@@ -219,7 +220,7 @@ function ChannelHeader({
           </p>
         ) : (
           <p className="channel-connectivity-message" style={{ margin: 0 }}>
-            点击「测试连通性」校验当前配置；真实推送连通性待服务端接入后验证。
+            点击「测试连通性」将通过服务端发送测试消息或校验应用凭据。
           </p>
         )}
         {connectivity.details.length > 0 ? (
@@ -239,6 +240,401 @@ function ChannelHeader({
   );
 }
 
+const DELIVERY_KIND_LABEL: Record<string, string> = {
+  group: '群',
+};
+
+const DELIVERY_HINTS = {
+  dingtalk: {
+    userLabel: 'User ID（高级）',
+    userPlaceholder: 'userId',
+    userHint: '工作通知私信时使用；可在钉钉管理后台成员详情查看。',
+  },
+  wecom: {
+    userLabel: 'User ID（高级）',
+    userPlaceholder: 'UserId',
+    userHint: '应用消息私信时使用；在企业微信管理后台查看成员 User ID。',
+  },
+} as const;
+
+function DeliveryTargetPanel({
+  channel,
+  disabled,
+  form,
+  chatIdsName,
+  userIdName,
+}: {
+  channel: 'feishu' | 'dingtalk' | 'wecom';
+  disabled: boolean;
+  form: FormInstance<FormValues>;
+  chatIdsName: (string | number)[];
+  userIdName: (string | number)[];
+}) {
+  const hints = DELIVERY_HINTS[channel];
+  const [loading, setLoading] = useState(false);
+  const [chatOptions, setChatOptions] = useState<
+    Array<{ id: string; name: string; kind: string }>
+  >([]);
+  const [loadMessage, setLoadMessage] = useState('');
+
+  const credentialKey = Form.useWatch([], form);
+
+  const loadChats = useCallback(async () => {
+    if (disabled) return;
+    setLoading(true);
+    setLoadMessage('');
+    try {
+      const config = mergeNotificationConfig(form.getFieldsValue(true));
+      const result = await api.listDeliveryTargets(channel, config);
+      setChatOptions(result.chats);
+      setLoadMessage(result.message);
+    } catch (err) {
+      setChatOptions([]);
+      setLoadMessage(err instanceof Error ? err.message : '拉取会话列表失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [channel, disabled, form]);
+
+  useEffect(() => {
+    void loadChats();
+  }, [loadChats, credentialKey]);
+
+  return (
+    <div className="delivery-target-panel">
+      <div className="delivery-target-head">
+        <p className="field-group-label" style={{ marginBottom: 0 }}>
+          投递会话（可多选）
+        </p>
+        <Button size="small" loading={loading} disabled={disabled} onClick={loadChats}>
+          刷新列表
+        </Button>
+      </div>
+      {loadMessage ? (
+        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+          {loadMessage}
+        </Text>
+      ) : null}
+      <Form.Item
+        name={chatIdsName}
+        style={{ marginBottom: 12 }}
+        rules={[
+          {
+            validator: async (_, value) => {
+              const ids = Array.isArray(value) ? value.filter(Boolean) : [];
+              const userId = trim(form.getFieldValue(userIdName));
+              if (ids.length > 0 || userId) return;
+              throw new Error('请至少选择一个投递会话，或填写高级私信 ID');
+            },
+          },
+        ]}
+      >
+        <Select
+          mode="multiple"
+          allowClear
+          disabled={disabled}
+          loading={loading}
+          placeholder={loading ? '正在拉取会话…' : '选择要接收通知的群聊'}
+          options={chatOptions.map((chat) => {
+            const kind = DELIVERY_KIND_LABEL[chat.kind] ?? '';
+            return {
+              value: chat.id,
+              label: kind
+                ? `[${kind}] ${chat.name} (${chat.id.slice(0, 10)}…)`
+                : `${chat.name} (${chat.id.slice(0, 10)}…)`,
+            };
+          })}
+          optionFilterProp="label"
+          style={{ width: '100%' }}
+        />
+      </Form.Item>
+      <p className="field-group-label">高级 · 私信用户</p>
+      <FieldRow
+        name={userIdName}
+        label={hints.userLabel}
+        hint={hints.userHint}
+        placeholder={hints.userPlaceholder}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+const DEFAULT_FEISHU_GROUP_NAME = '华尔街之狼';
+const FEISHU_MOBILE_LOOKUP_SCOPE = 'contact:user.id:readonly';
+const FEISHU_CHAT_CREATE_SCOPE = 'im:chat:create';
+
+function feishuPermissionUrl(appId: string, scope: string) {
+  const id = trim(appId);
+  if (!id) return 'https://open.feishu.cn/app';
+  return `https://open.feishu.cn/app/${id}/auth?q=${encodeURIComponent(scope)}&op_from=openapi&token_type=tenant`;
+}
+
+function FeishuDeliveryTargetPanel({
+  disabled,
+  form,
+}: {
+  disabled: boolean;
+  form: FormInstance<FormValues>;
+}) {
+  const { message } = App.useApp();
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [mobileInput, setMobileInput] = useState('');
+  const [groupNameInput, setGroupNameInput] = useState(DEFAULT_FEISHU_GROUP_NAME);
+  const [chatOptions, setChatOptions] = useState<
+    Array<{ id: string; name: string; kind: string }>
+  >([]);
+  const [loadMessage, setLoadMessage] = useState('');
+
+  const credentialKey = Form.useWatch([], form);
+  const appId = trim(Form.useWatch(['channels', 'feishu', 'app', 'appId'], form));
+  const chatIdsName = ['channels', 'feishu', 'app', 'receiveChatIds'] as const;
+
+  const openCreateModal = () => {
+    setMobileInput('');
+    setGroupNameInput(DEFAULT_FEISHU_GROUP_NAME);
+    setCreateModalOpen(true);
+  };
+
+  const loadChats = useCallback(
+    async (options?: { hint?: string; delayMs?: number }) => {
+      if (disabled) return;
+      if (options?.delayMs) {
+        await new Promise((resolve) => setTimeout(resolve, options.delayMs));
+      }
+      setLoading(true);
+      if (options?.hint) {
+        setLoadMessage(options.hint);
+      } else {
+        setLoadMessage('');
+      }
+      try {
+        const config = mergeNotificationConfig(form.getFieldsValue(true));
+        const result = await api.listDeliveryTargets('feishu', config);
+        setChatOptions(result.chats);
+        setLoadMessage(result.message);
+      } catch (err) {
+        setChatOptions([]);
+        setLoadMessage(err instanceof Error ? err.message : '拉取会话列表失败');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [disabled, form],
+  );
+
+  const upsertChatOption = useCallback(
+    (chat: { id: string; name: string; kind?: string }) => {
+      setChatOptions((prev) => {
+        const index = prev.findIndex((item) => item.id === chat.id);
+        const nextItem = {
+          id: chat.id,
+          name: chat.name,
+          kind: chat.kind ?? 'group',
+        };
+        if (index >= 0) {
+          return prev.map((item, idx) => (idx === index ? nextItem : item));
+        }
+        return [nextItem, ...prev];
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    void loadChats();
+  }, [loadChats, credentialKey]);
+
+  const handleCreateGroup = async () => {
+    const mobile = trim(mobileInput).replace(/\s+/g, '');
+    const groupName = trim(groupNameInput) || DEFAULT_FEISHU_GROUP_NAME;
+    if (!mobile) {
+      message.warning('请填写手机号');
+      return;
+    }
+    if (!/^1\d{10}$/.test(mobile)) {
+      message.warning('请输入 11 位中国大陆手机号');
+      return;
+    }
+    const currentAppId = trim(form.getFieldValue(['channels', 'feishu', 'app', 'appId']));
+    const appSecret = trim(form.getFieldValue(['channels', 'feishu', 'app', 'appSecret']));
+    if (!currentAppId || !appSecret) {
+      message.warning('请先填写 App ID 与 App Secret');
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const config = mergeNotificationConfig(form.getFieldsValue(true));
+      const result = await api.createFeishuNotificationGroup(config, { mobile, groupName });
+      const currentIds: string[] = form.getFieldValue(chatIdsName) ?? [];
+      const nextIds = currentIds.includes(result.chatId)
+        ? currentIds
+        : [...currentIds, result.chatId];
+      form.setFieldValue(chatIdsName, nextIds);
+      upsertChatOption({ id: result.chatId, name: result.chatName, kind: 'group' });
+      setCreateModalOpen(false);
+      setMobileInput('');
+      setGroupNameInput(DEFAULT_FEISHU_GROUP_NAME);
+      message.success(
+        result.reused
+          ? `${result.message}：${result.chatName}，正在刷新列表…`
+          : `已创建「${result.chatName}」并加入投递列表，正在刷新列表…`,
+      );
+      await loadChats({ hint: '创建成功，正在刷新群列表…', delayMs: 600 });
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '创建通知群失败');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="delivery-target-panel">
+      <div className="delivery-target-head">
+        <p className="field-group-label" style={{ marginBottom: 0 }}>
+          投递会话（可多选）
+        </p>
+        <div className="delivery-target-actions">
+          <Button size="small" disabled={disabled} onClick={openCreateModal}>
+            创建专属通知群
+          </Button>
+          <Button
+            size="small"
+            loading={loading}
+            disabled={disabled}
+            onClick={() => void loadChats()}
+          >
+            刷新列表
+          </Button>
+        </div>
+      </div>
+      <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+        飞书无法列出单聊会话。填写手机号可一键创建「你 + 机器人」的两人通知群，创建成功后会自动刷新下方列表。
+      </Text>
+      {loadMessage ? (
+        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+          {loadMessage}
+        </Text>
+      ) : null}
+      <Form.Item
+        name={chatIdsName}
+        style={{ marginBottom: 0 }}
+        rules={[
+          {
+            validator: async (_, value) => {
+              const ids = Array.isArray(value) ? value.filter(Boolean) : [];
+              if (ids.length > 0) return;
+              throw new Error('请至少选择一个投递会话，或点击「创建专属通知群」');
+            },
+          },
+        ]}
+      >
+        <Select
+          mode="multiple"
+          allowClear
+          disabled={disabled}
+          loading={loading}
+          placeholder={loading ? '正在拉取会话…' : '选择要接收通知的群聊'}
+          options={chatOptions.map((chat) => {
+            const kind = DELIVERY_KIND_LABEL[chat.kind] ?? '';
+            return {
+              value: chat.id,
+              label: kind
+                ? `[${kind}] ${chat.name} (${chat.id.slice(0, 10)}…)`
+                : `${chat.name} (${chat.id.slice(0, 10)}…)`,
+            };
+          })}
+          optionFilterProp="label"
+          style={{ width: '100%' }}
+        />
+      </Form.Item>
+
+      <Modal
+        title="创建专属通知群"
+        open={createModalOpen}
+        onCancel={() => {
+          if (!creating) setCreateModalOpen(false);
+        }}
+        onOk={() => void handleCreateGroup()}
+        okText="创建"
+        cancelText="取消"
+        confirmLoading={creating}
+        destroyOnClose
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="创建前请确认应用已开通以下权限并发布"
+          description={
+            <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13 }}>
+              <li>
+                通过手机号或邮箱获取用户 ID（{FEISHU_MOBILE_LOOKUP_SCOPE}）
+                {appId ? (
+                  <>
+                    {' '}
+                    <Link href={feishuPermissionUrl(appId, FEISHU_MOBILE_LOOKUP_SCOPE)} target="_blank">
+                      去开通
+                    </Link>
+                  </>
+                ) : (
+                  '（请先填写 App ID）'
+                )}
+              </li>
+              <li>
+                创建群（{FEISHU_CHAT_CREATE_SCOPE}）
+                {appId ? (
+                  <>
+                    {' '}
+                    <Link href={feishuPermissionUrl(appId, FEISHU_CHAT_CREATE_SCOPE)} target="_blank">
+                      去开通
+                    </Link>
+                  </>
+                ) : (
+                  '（请先填写 App ID）'
+                )}
+              </li>
+              <li>你的手机号需已在企业通讯录登记，且应用在通讯录权限范围内</li>
+            </ul>
+          }
+        />
+        <label className="field-group-label" htmlFor="feishu-create-mobile">
+          你的手机号
+        </label>
+        <Input
+          id="feishu-create-mobile"
+          value={mobileInput}
+          onChange={(event) => setMobileInput(event.target.value)}
+          placeholder="132xxxxxxxx"
+          disabled={creating}
+          style={{ marginBottom: 12 }}
+        />
+        <label className="field-group-label" htmlFor="feishu-create-group-name">
+          群名称
+        </label>
+        <Input
+          id="feishu-create-group-name"
+          value={groupNameInput}
+          onChange={(event) => setGroupNameInput(event.target.value)}
+          placeholder={DEFAULT_FEISHU_GROUP_NAME}
+          disabled={creating}
+          maxLength={60}
+        />
+        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
+          将用该手机号查询你的飞书身份并建群，手机号不会保存到配置。
+        </Text>
+      </Modal>
+    </div>
+  );
+}
+
+function trim(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 function CredentialsHelp({ channel }: { channel: NotifyChannel }) {
   const info = CHANNEL_INFO[channel];
   return (
@@ -252,7 +648,13 @@ function CredentialsHelp({ channel }: { channel: NotifyChannel }) {
   );
 }
 
-function DingTalkFields({ disabled }: { disabled: boolean }) {
+function DingTalkFields({
+  disabled,
+  form,
+}: {
+  disabled: boolean;
+  form: FormInstance<FormValues>;
+}) {
   return (
     <>
       <CredentialsHelp channel="dingtalk" />
@@ -297,12 +699,32 @@ function DingTalkFields({ disabled }: { disabled: boolean }) {
           password
           disabled={disabled}
         />
+        <DeliveryTargetPanel
+          channel="dingtalk"
+          disabled={disabled}
+          form={form}
+          chatIdsName={['channels', 'dingtalk', 'app', 'receiveChatIds']}
+          userIdName={['channels', 'dingtalk', 'app', 'receiveUserId']}
+        />
+        <p className="field-group-label">推荐</p>
+        <FieldRow
+          name={['channels', 'dingtalk', 'app', 'agentId']}
+          label="Agent ID"
+          hint="发送工作通知时可能需要，连通性测试暂仅校验凭据"
+          disabled={disabled}
+        />
       </ConfigSection>
     </>
   );
 }
 
-function FeishuFields({ disabled }: { disabled: boolean }) {
+function FeishuFields({
+  disabled,
+  form,
+}: {
+  disabled: boolean;
+  form: FormInstance<FormValues>;
+}) {
   return (
     <>
       <CredentialsHelp channel="feishu" />
@@ -347,6 +769,7 @@ function FeishuFields({ disabled }: { disabled: boolean }) {
           password
           disabled={disabled}
         />
+        <FeishuDeliveryTargetPanel disabled={disabled} form={form} />
         <p className="field-group-label">推荐</p>
         <FieldRow
           name={['channels', 'feishu', 'app', 'encryptKey']}
@@ -367,7 +790,13 @@ function FeishuFields({ disabled }: { disabled: boolean }) {
   );
 }
 
-function WecomFields({ disabled }: { disabled: boolean }) {
+function WecomFields({
+  disabled,
+  form,
+}: {
+  disabled: boolean;
+  form: FormInstance<FormValues>;
+}) {
   return (
     <>
       <CredentialsHelp channel="wecom" />
@@ -417,6 +846,13 @@ function WecomFields({ disabled }: { disabled: boolean }) {
           hint="自建应用 AgentId"
           disabled={disabled}
         />
+        <DeliveryTargetPanel
+          channel="wecom"
+          disabled={disabled}
+          form={form}
+          chatIdsName={['channels', 'wecom', 'app', 'receiveChatIds']}
+          userIdName={['channels', 'wecom', 'app', 'receiveUserId']}
+        />
         <p className="field-group-label">推荐</p>
         <FieldRow
           name={['channels', 'wecom', 'app', 'callbackToken']}
@@ -436,6 +872,8 @@ function WecomFields({ disabled }: { disabled: boolean }) {
     </>
   );
 }
+
+const NOTIFY_CHANNELS: NotifyChannel[] = ['dingtalk', 'feishu', 'wecom'];
 
 function ChannelPanel({
   channel,
@@ -464,11 +902,11 @@ function ChannelPanel({
         onTestConnectivity={() => onTestConnectivity(channel)}
       />
       {channel === 'dingtalk' ? (
-        <DingTalkFields disabled={disabled} />
+        <DingTalkFields disabled={disabled} form={form} />
       ) : channel === 'feishu' ? (
-        <FeishuFields disabled={disabled} />
+        <FeishuFields disabled={disabled} form={form} />
       ) : (
-        <WecomFields disabled={disabled} />
+        <WecomFields disabled={disabled} form={form} />
       )}
     </div>
   );
@@ -521,8 +959,8 @@ function TriggerPanel({ masterEnabled }: { masterEnabled: boolean }) {
         type="info"
         showIcon
         style={{ marginTop: 16 }}
-        message="推送发送功能即将上线"
-        description="当前配置仅保存在浏览器本地。后续版本将通过后端安全转发消息，群机器人与应用模式均可使用。"
+        message="推送说明"
+        description="手动刷新后推送持仓收益。群通知优先用 Webhook；应用模式填写投递会话 ID（Hermes HOME_CHANNEL 思路）。凭据填好后用「测试连通性」验证，类似 WorkBuddy 注册流程。"
       />
     </div>
   );
@@ -537,11 +975,32 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const masterEnabled = Form.useWatch('enabled', form);
 
   useEffect(() => {
-    if (open) {
-      form.setFieldsValue(loadNotificationSettings());
-      setActivePanel('trigger');
-      setConnectivityMap(createInitialConnectivityMap());
-    }
+    if (!open) return;
+
+    let cancelled = false;
+    const load = async () => {
+      const local = loadNotificationSettings();
+      try {
+        const remote = await api.getNotificationConfig();
+        if (!cancelled) {
+          const merged = remote.config
+            ? mergeNotificationConfig({ ...local, ...remote.config })
+            : local;
+          form.setFieldsValue(merged);
+        }
+      } catch {
+        if (!cancelled) form.setFieldsValue(local);
+      }
+      if (!cancelled) {
+        setActivePanel('trigger');
+        setConnectivityMap(createInitialConnectivityMap());
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [open, form]);
 
   const handleTestConnectivity = useCallback(
@@ -577,39 +1036,24 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   );
 
   const handleSave = async () => {
+    const settings = sanitizeNotificationConfig(form.getFieldsValue(true));
+    const err = validateNotificationSettings(settings);
+    if (err) {
+      message.warning(err);
+      return;
+    }
+    setSaving(true);
     try {
-      const values = await form.validateFields();
-      const settings = sanitizeNotificationConfig(values);
-      const err = validateNotificationSettings(settings);
-      if (err) {
-        message.warning(err);
-        return;
-      }
-      setSaving(true);
       saveNotificationSettings(settings);
-      message.success('通知配置已保存到本地');
+      await api.saveNotificationConfig(settings);
+      message.success('通知配置已保存（本地 + 服务端）');
       onClose();
-    } catch {
-      // 表单校验失败
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '保存到服务端失败');
     } finally {
       setSaving(false);
     }
   };
-
-  const panelContent = useMemo(() => {
-    if (activePanel === 'trigger') {
-      return <TriggerPanel masterEnabled={Boolean(masterEnabled)} />;
-    }
-    return (
-      <ChannelPanel
-        channel={activePanel}
-        masterEnabled={Boolean(masterEnabled)}
-        form={form}
-        connectivity={connectivityMap[activePanel]}
-        onTestConnectivity={handleTestConnectivity}
-      />
-    );
-  }, [activePanel, masterEnabled, form, connectivityMap, handleTestConnectivity]);
 
   return (
     <Modal
@@ -625,7 +1069,15 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       className="settings-modal"
       styles={{ body: { paddingTop: 4 } }}
     >
-      <Form form={form} layout="vertical" initialValues={createDefaultNotificationConfig()}>
+      <Form
+        form={form}
+        layout="vertical"
+        preserve
+        initialValues={createDefaultNotificationConfig()}
+      >
+        <Form.Item name="version" hidden>
+          <Input />
+        </Form.Item>
         <div className="settings-master">
           <div>
             <Text strong>启用消息通知</Text>
@@ -653,7 +1105,27 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               </button>
             ))}
           </nav>
-          <div className="settings-panel">{panelContent}</div>
+          <div className="settings-panel">
+            <div
+              className={`settings-panel-section${activePanel === 'trigger' ? ' active' : ''}`}
+            >
+              <TriggerPanel masterEnabled={Boolean(masterEnabled)} />
+            </div>
+            {NOTIFY_CHANNELS.map((channel) => (
+              <div
+                key={channel}
+                className={`settings-panel-section${activePanel === channel ? ' active' : ''}`}
+              >
+                <ChannelPanel
+                  channel={channel}
+                  masterEnabled={Boolean(masterEnabled)}
+                  form={form}
+                  connectivity={connectivityMap[channel]}
+                  onTestConnectivity={handleTestConnectivity}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </Form>
     </Modal>

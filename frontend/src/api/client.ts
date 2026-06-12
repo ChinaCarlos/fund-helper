@@ -8,6 +8,8 @@ import type {
   QrStatusResponse,
   SearchFundItem,
 } from '@/types/portfolio';
+import type { ConnectivityTestResult } from '@/utils/notificationConnectivity';
+import type { NotificationConfig, NotifyChannel } from '@/utils/notificationSettings';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -78,4 +80,51 @@ export const api = {
       method: 'DELETE',
     });
   },
+  getNotificationConfig: () =>
+    request<{ config: NotificationConfig | null }>('/api/notify/config'),
+  listDeliveryTargets: (channel: NotifyChannel, config: NotificationConfig) =>
+    request<{
+      status: 'success' | 'error';
+      message: string;
+      chats: Array<{ id: string; name: string; kind: string }>;
+    }>(`/api/notify/delivery-targets/${channel}`, {
+      method: 'POST',
+      body: JSON.stringify({ config }),
+    }),
+  createFeishuNotificationGroup: (
+    config: NotificationConfig,
+    payload: { mobile: string; groupName: string },
+  ) =>
+    request<{
+      status: 'success' | 'error';
+      message: string;
+      chatId: string;
+      chatName: string;
+      reused: boolean;
+    }>('/api/notify/feishu/create-notification-group', {
+      method: 'POST',
+      body: JSON.stringify({
+        config,
+        mobile: payload.mobile,
+        groupName: payload.groupName,
+      }),
+    }),
+  saveNotificationConfig: (config: NotificationConfig) =>
+    request<{ config: NotificationConfig }>('/api/notify/config', {
+      method: 'PUT',
+      body: JSON.stringify({ config }),
+    }),
+  testNotificationChannel: (channel: NotifyChannel, config: NotificationConfig) =>
+    request<ConnectivityTestResult>('/api/notify/test', {
+      method: 'POST',
+      body: JSON.stringify({ channel, config }),
+    }),
+  pushNotification: () =>
+    request<{
+      status: 'success' | 'partial' | 'error' | 'skipped';
+      message: string;
+      results: Array<{ channel: string; status: string; message: string }>;
+    }>('/api/notify/push', {
+      method: 'POST',
+    }),
 };

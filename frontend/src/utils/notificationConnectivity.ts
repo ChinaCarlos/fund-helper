@@ -1,3 +1,4 @@
+import { api } from '@/api/client';
 import type {
   DingTalkChannel,
   FeishuChannel,
@@ -113,19 +114,7 @@ function checkWecom(cfg: WecomChannel): string[] {
   return issues;
 }
 
-function buildSuccessDetails(channel: NotifyChannel, cfg: DingTalkChannel | FeishuChannel | WecomChannel): string[] {
-  const details: string[] = [];
-  if (cfg.webhook.enabled) {
-    details.push('群机器人：配置校验通过');
-  }
-  if (cfg.app.enabled) {
-    details.push('应用：配置校验通过');
-  }
-  details.push(`${CHANNEL_LABELS[channel]}真实推送连通性待服务端验证`);
-  return details;
-}
-
-/** 前端本地校验，不抛错；后续可在此处接入 POST /api/notify/test */
+/** 前端本地预校验，减少无效请求 */
 export function evaluateChannelConnectivity(
   channel: NotifyChannel,
   config: NotificationConfig,
@@ -157,24 +146,46 @@ export function evaluateChannelConnectivity(
   return {
     status: 'success',
     message: `${CHANNEL_LABELS[channel]}配置校验通过`,
-    details: buildSuccessDetails(channel, cfg),
+    details: [],
   };
 }
 
-const TEST_DELAY_MS = 700;
+function parseApiErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) return '连通性测试请求失败';
+  const raw = error.message.trim();
+  if (!raw) return '连通性测试请求失败';
+  try {
+    const parsed = JSON.parse(raw) as { detail?: string };
+    if (typeof parsed.detail === 'string' && parsed.detail) {
+      return parsed.detail;
+    }
+  } catch {
+    // 非 JSON 响应
+  }
+  return raw;
+}
 
 export async function runChannelConnectivityTest(
   channel: NotifyChannel,
   config: NotificationConfig,
 ): Promise<ConnectivityTestResult> {
   try {
-    await new Promise((resolve) => setTimeout(resolve, TEST_DELAY_MS));
-    // 后续接入: return await api.testNotificationChannel(channel, mergeNotificationConfig(config));
-    return evaluateChannelConnectivity(channel, config);
-  } catch {
+    const merged = mergeNotificationConfig(config);
+    const local = evaluateChannelConnectivity(channel, merged);
+    if (local.status === 'error') {
+      return local;
+    }
+
+    const result = await api.testNotificationChannel(channel, merged);
+    return {
+      status: result.status,
+      message: result.message,
+      details: Array.isArray(result.details) ? result.details : [],
+    };
+  } catch (error) {
     return {
       status: 'error',
-      message: '连通性测试异常，请稍后重试',
+      message: parseApiErrorMessage(error),
       details: [],
     };
   }
@@ -185,7 +196,7 @@ export function connectivityStatusLabel(status: ConnectivityStatus): string {
     case 'testing':
       return '测试中';
     case 'success':
-      return '配置有效';
+      return '已连通';
     case 'error':
       return '未通过';
     default:

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router as api_router
 from app.config import settings
+from app.notify.config_store import NotificationConfigStore
 from app.services.poller import PortfolioPoller
 from app.yjb.auth_store import AuthStore
 
@@ -21,6 +22,7 @@ async def lifespan(app: FastAPI):
 
     app.state.auth_store = auth_store
     app.state.poller = poller
+    app.state.notify_config_store = NotificationConfigStore()
     app.state.qr_sessions = {}
 
     yield
