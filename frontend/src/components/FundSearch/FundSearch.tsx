@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SearchOutlined } from '@ant-design/icons';
 import {
   Alert,
@@ -22,12 +22,14 @@ const { Text } = Typography;
 interface FundSearchProps {
   accounts: AccountItem[];
   onAuthRequired?: () => void;
+  onRefresh?: () => void;
   compact?: boolean;
 }
 
 export function FundSearch({
   accounts,
   onAuthRequired,
+  onRefresh,
   compact = false,
 }: FundSearchProps) {
   const [keyword, setKeyword] = useState('');
@@ -43,18 +45,26 @@ export function FundSearch({
   const [holdCost, setHoldCost] = useState('0.0000');
   const [submitting, setSubmitting] = useState(false);
 
+  const onAuthRequiredRef = useRef(onAuthRequired);
+  onAuthRequiredRef.current = onAuthRequired;
+
+  const accountIdsKey = accounts.map((a) => a.account_id).join(',');
+
   useEffect(() => {
-    if (!accounts.some((a) => a.account_id === addAccountId)) {
-      setAddAccountId(accounts[0]?.account_id ?? 0);
+    const ids = accountIdsKey
+      ? accountIdsKey.split(',').map((id) => Number(id))
+      : [];
+    if (ids.length > 0 && !ids.includes(addAccountId)) {
+      setAddAccountId(ids[0]);
     }
-  }, [accounts, addAccountId]);
+  }, [accountIdsKey, addAccountId]);
 
   useEffect(() => {
     const trimmed = keyword.trim();
     if (trimmed.length < 1) {
-      setResults([]);
-      setError('');
-      setOpen(false);
+      setResults((prev) => (prev.length > 0 ? [] : prev));
+      setError((prev) => (prev ? '' : prev));
+      setOpen((prev) => (prev ? false : prev));
       return;
     }
 
@@ -68,7 +78,7 @@ export function FundSearch({
       } catch (err) {
         const message = err instanceof Error ? err.message : '搜索失败';
         if (message.includes('未登录') || message.includes('401')) {
-          onAuthRequired?.();
+          onAuthRequiredRef.current?.();
           return;
         }
         setError(message);
@@ -80,7 +90,7 @@ export function FundSearch({
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [keyword, onAuthRequired]);
+  }, [keyword]);
 
   const openAddModal = (fund: SearchFundItem) => {
     setAdding(fund);
@@ -110,10 +120,11 @@ export function FundSearch({
       setKeyword('');
       setResults([]);
       setOpen(false);
+      onRefresh?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : '添加失败';
       if (message.includes('未登录') || message.includes('401')) {
-        onAuthRequired?.();
+        onAuthRequiredRef.current?.();
         return;
       }
       setError(message);

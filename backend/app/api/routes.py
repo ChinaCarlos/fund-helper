@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import base64
 import io
 from collections.abc import Awaitable, Callable
@@ -53,10 +52,6 @@ async def _with_yjb_client(
         await client.close()
 
 
-async def _refresh_portfolio(request: Request) -> None:
-    asyncio.create_task(request.app.state.poller.poll_once())
-
-
 @router.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
@@ -102,7 +97,6 @@ async def get_avatar(request: Request) -> Response:
 @router.post("/auth/logout")
 async def logout(request: Request) -> dict:
     request.app.state.auth_store.clear()
-    await request.app.state.broadcaster.broadcast({"type": "auth_required"})
     return {"ok": True}
 
 
@@ -139,21 +133,11 @@ async def qrcode_status(qr_id: str, request: Request) -> dict:
 
     state = str(data.get("state", ""))
     if state == "2" and data.get("token"):
-        session = request.app.state.auth_store.save(
+        request.app.state.auth_store.save(
             token=data["token"],
             nickname=data.get("nickname", ""),
             avatar=normalize_avatar_url(data.get("avatar", "")),
         )
-        await request.app.state.broadcaster.broadcast(
-            {
-                "type": "auth_ok",
-                "data": {
-                    "nickname": session.nickname,
-                    "avatar": session.avatar,
-                },
-            }
-        )
-        asyncio.create_task(request.app.state.poller.poll_once())
 
     return {
         "state": state,
@@ -164,18 +148,12 @@ async def qrcode_status(qr_id: str, request: Request) -> dict:
 
 @router.get("/portfolio")
 async def get_portfolio(request: Request) -> dict:
-    poller = request.app.state.poller
-    if poller.latest:
-        return poller.latest
-
     session = request.app.state.auth_store.session
     if not session.is_valid:
         raise HTTPException(status_code=401, detail="未登录")
 
     try:
-        snapshot = await poller.fetch_snapshot()
-        poller._latest = snapshot
-        return snapshot
+        return await request.app.state.poller.fetch_snapshot()
     except YjbApiError as exc:
         if exc.status_code == 401:
             request.app.state.auth_store.clear()
@@ -195,7 +173,6 @@ async def get_income_line(
     account_ids: list[int] = Query(default=[], alias="account_ids[]"),
     collect: bool = Query(False),
 ) -> dict:
-    """汇总曲线 collect=true；单账户优先 account_ids[]（与养基宝 plug API 一致）。"""
     ids = list(account_ids)
     if not ids and account_id is not None:
         ids = [account_id]
@@ -255,7 +232,6 @@ async def add_fund_hold(body: AddFundBody, request: Request) -> dict:
         request,
         lambda c: c.add_fund_hold(account_id=body.account_id, items=items),
     )
-    await _refresh_portfolio(request)
     return {"ok": True, "data": data}
 
 
@@ -272,5 +248,4 @@ async def remove_fund_hold(
         request,
         lambda c: c.remove_fund_hold(account_id=account_id, fund_ids=fund_ids),
     )
-    await _refresh_portfolio(request)
     return {"ok": True, "data": data}

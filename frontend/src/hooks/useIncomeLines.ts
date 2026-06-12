@@ -11,12 +11,8 @@ function emptyLine(accountId: number): IncomeLineData {
  * - 汇总：collect=true → key collect
  * - 各账户：account_ids[] → key 为账户 ID 字符串
  */
-/** refreshKey 仅在交易时段传入（如 updatedAt），非交易时段不重复拉取曲线 */
-export function useIncomeLines(
-  accountIds: number[],
-  refreshKey?: string,
-  trading = true,
-) {
+/** refreshKey 变化时重新拉取曲线（如手动刷新后的 updatedAt） */
+export function useIncomeLines(accountIds: number[], refreshKey?: string) {
   const [collectLine, setCollectLine] = useState<IncomeLineData | null>(null);
   const [linesByAccount, setLinesByAccount] = useState<
     Record<number, IncomeLineData>
@@ -25,7 +21,6 @@ export function useIncomeLines(
   const [error, setError] = useState('');
 
   const idsKey = accountIds.join(',');
-  const effectiveRefreshKey = trading ? refreshKey : undefined;
 
   useEffect(() => {
     if (accountIds.length === 0) {
@@ -69,7 +64,7 @@ export function useIncomeLines(
     return () => {
       cancelled = true;
     };
-  }, [idsKey, effectiveRefreshKey]);
+  }, [idsKey, refreshKey]);
 
   return { collectLine, linesByAccount, loading, error };
 }

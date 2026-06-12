@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from datetime import datetime
 
-from app.config import settings
-from app.services.broadcaster import Broadcaster
 from app.yjb.auth_store import AuthStore
 from app.yjb.calculator import build_portfolio_snapshot
 from app.yjb.client import YjbApiError, YjbClient
-
-logger = logging.getLogger(__name__)
 
 
 def is_trading_hours() -> bool:
@@ -24,15 +19,10 @@ def is_trading_hours() -> bool:
 
 
 class PortfolioPoller:
-    def __init__(self, auth_store: AuthStore, broadcaster: Broadcaster):
-        self.auth_store = auth_store
-        self.broadcaster = broadcaster
-        self._task: asyncio.Task | None = None
-        self._latest: dict | None = None
+    """按需拉取持仓快照（无后台轮询、无 WebSocket）。"""
 
-    @property
-    def latest(self) -> dict | None:
-        return self._latest
+    def __init__(self, auth_store: AuthStore):
+        self.auth_store = auth_store
 
     async def fetch_snapshot(self) -> dict:
         session = self.auth_store.session
@@ -65,45 +55,3 @@ class PortfolioPoller:
             return snapshot
         finally:
             await client.close()
-
-    async def poll_once(self) -> None:
-        try:
-            snapshot = await self.fetch_snapshot()
-            self._latest = snapshot
-            await self.broadcaster.broadcast(
-                {"type": "portfolio_update", "data": snapshot}
-            )
-        except YjbApiError as exc:
-            if exc.status_code == 401:
-                self.auth_store.clear()
-                await self.broadcaster.broadcast({"type": "auth_required"})
-            else:
-                await self.broadcaster.broadcast(
-                    {"type": "error", "message": str(exc)}
-                )
-        except Exception as exc:
-            logger.exception("poll failed")
-            await self.broadcaster.broadcast(
-                {"type": "error", "message": f"数据拉取失败: {exc}"}
-            )
-
-    async def _loop(self) -> None:
-        while True:
-            if not self.auth_store.session.is_valid:
-                await asyncio.sleep(settings.idle_check_interval)
-                continue
-
-            if is_trading_hours():
-                await self.poll_once()
-                await asyncio.sleep(settings.poll_interval)
-            else:
-                # 非交易时段不拉取行情，仅定期唤醒检查是否进入交易时段
-                await asyncio.sleep(settings.idle_check_interval)
-
-    def start(self) -> None:
-        if self._task is None or self._task.done():
-            self._task = asyncio.create_task(self._loop())
-
-    def stop(self) -> None:
-        if self._task and not self._task.done():
-            self._task.cancel()

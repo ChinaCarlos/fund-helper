@@ -1172,8 +1172,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 浏览器访问：http://localhost:3000
@@ -1191,7 +1191,7 @@ chmod +x start.sh
 
 ```bash
 cd frontend
-npm run build       # 产物在 frontend/dist/
+pnpm build          # 产物在 frontend/dist/
 ```
 
 生产环境需将 `dist/` 静态文件与 FastAPI 同域部署，或配置 Nginx 反代 `/api` 与 `/ws` 到后端。

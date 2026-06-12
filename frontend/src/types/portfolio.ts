@@ -132,8 +132,3 @@ export interface QrStatusResponse {
   avatar?: string;
 }
 
-export type WsMessage =
-  | { type: 'portfolio_update'; data: PortfolioSnapshot }
-  | { type: 'auth_required' }
-  | { type: 'auth_ok'; data: { nickname?: string; avatar?: string } }
-  | { type: 'error'; message: string };

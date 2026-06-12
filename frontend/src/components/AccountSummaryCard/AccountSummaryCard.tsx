@@ -1,8 +1,18 @@
-import { Card, Col, Row, Space, Tag, Typography } from 'antd';
-import { AccountIcon, FallIcon, RiseIcon } from '@/components/AccountIcon/AccountIcon';
-import { IncomeSparkline } from '@/components/IncomeSparkline/IncomeSparkline';
-import type { AccountItem, IncomeLinePoint } from '@/types/portfolio';
-import { formatMoney, formatPercent, formatSigned, trendColor } from '@/utils/format';
+import { Card, Col, Row, Space, Tag, Typography } from "antd";
+import {
+  AccountIcon,
+  FallIcon,
+  RiseIcon,
+} from "@/components/AccountIcon/AccountIcon";
+import { IncomeSparkline } from "@/components/IncomeSparkline/IncomeSparkline";
+import type { AccountItem, IncomeLinePoint } from "@/types/portfolio";
+import {
+  formatMoney,
+  formatPercent,
+  formatSigned,
+  incomeAmountStyle,
+  trendColor,
+} from "@/utils/format";
 
 const { Text, Title } = Typography;
 
@@ -24,14 +34,14 @@ export function AccountSummaryCard({
       hoverable={Boolean(onClick)}
       onClick={onClick}
       bordered={false}
-      style={{ height: '100%', cursor: onClick ? 'pointer' : 'default' }}
+      style={{ height: "100%", cursor: onClick ? "pointer" : "default" }}
     >
       <FlexHeader account={account} updated={updated} />
 
       <Text type="secondary" style={{ fontSize: 12 }}>
         账户资产
       </Text>
-      <Title level={4} style={{ margin: '4px 0 16px' }}>
+      <Title level={4} style={{ margin: "4px 0 16px" }}>
         {formatMoney(account.account_assets)}
       </Title>
 
@@ -45,7 +55,12 @@ export function AccountSummaryCard({
               {formatSigned(account.hold_income)}
             </Text>
           </div>
-          <Text style={{ color: trendColor(account.hold_income_rate), fontSize: 12 }}>
+          <Text
+            style={{
+              color: trendColor(account.hold_income_rate),
+              fontSize: 12,
+            }}
+          >
             {formatPercent(account.hold_income_rate)}
           </Text>
         </Col>
@@ -54,11 +69,20 @@ export function AccountSummaryCard({
             当日收益
           </Text>
           <div>
-            <Text strong style={{ color: trendColor(account.today_income) }}>
+            <span
+              className="mono"
+              style={incomeAmountStyle(account.today_income)}
+            >
               {formatSigned(account.today_income)}
-            </Text>
+            </span>
           </div>
-          <Text style={{ color: trendColor(account.today_income_rate), fontSize: 12 }}>
+          <Text
+            strong
+            style={{
+              color: trendColor(account.today_income_rate),
+              fontSize: 13,
+            }}
+          >
             {formatPercent(account.today_income_rate)}
           </Text>
         </Col>
@@ -85,7 +109,13 @@ function FlexHeader({
   updated: boolean;
 }) {
   return (
-    <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
+    <Space
+      style={{
+        width: "100%",
+        justifyContent: "space-between",
+        marginBottom: 12,
+      }}
+    >
       <Space>
         <AccountIcon title={account.title} />
         <Text strong>{account.title}</Text>
@@ -94,11 +124,11 @@ function FlexHeader({
       <Space size={12}>
         <Space size={4}>
           <RiseIcon />
-          <Text style={{ color: '#fc4e50' }}>{account.up}</Text>
+          <Text style={{ color: "#fc4e50" }}>{account.up}</Text>
         </Space>
         <Space size={4}>
           <FallIcon />
-          <Text style={{ color: '#07b360' }}>{account.down}</Text>
+          <Text style={{ color: "#07b360" }}>{account.down}</Text>
         </Space>
       </Space>
     </Space>

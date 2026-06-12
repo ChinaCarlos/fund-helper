@@ -1,6 +1,6 @@
-import { Card, Flex, Typography } from 'antd';
-import type { IndexItem } from '@/types/portfolio';
-import { formatPercent, trendColor } from '@/utils/format';
+import { Card, Flex, Typography } from "antd";
+import type { IndexItem } from "@/types/portfolio";
+import { formatPercent, trendColor } from "@/utils/format";
 
 const { Text } = Typography;
 
@@ -12,7 +12,7 @@ export function IndexBar({ indices }: IndexBarProps) {
   if (!indices.length) return null;
 
   return (
-    <Card bordered={false} styles={{ body: { padding: '12px 16px' } }}>
+    <Card bordered={false} styles={{ body: { padding: "12px 16px" } }}>
       <Flex wrap="wrap" gap={12}>
         {indices.map((item) => {
           const color = trendColor(item.dir);
@@ -22,14 +22,17 @@ export function IndexBar({ indices }: IndexBarProps) {
               align="center"
               gap={10}
               style={{
-                background: '#fafbfc',
+                background: "#fafbfc",
                 borderRadius: 10,
-                padding: '10px 16px',
+                padding: "10px 16px",
                 minWidth: 200,
-                flex: '1 1 200px',
+                flex: "1 1 200px",
               }}
             >
-              <Text strong style={{ fontSize: 14, whiteSpace: 'nowrap', color: '#1e293b' }}>
+              <Text
+                strong
+                style={{ fontSize: 14, whiteSpace: "nowrap", color: "#1e293b" }}
+              >
                 {item.name}
               </Text>
               <Text
@@ -39,7 +42,7 @@ export function IndexBar({ indices }: IndexBarProps) {
                   color,
                   fontSize: 18,
                   lineHeight: 1.2,
-                  letterSpacing: '-0.02em',
+                  letterSpacing: "-0.02em",
                 }}
               >
                 {item.v}

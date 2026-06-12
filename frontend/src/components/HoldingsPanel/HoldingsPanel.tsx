@@ -1,26 +1,26 @@
-import { useMemo, useState } from 'react';
-import { Card, Col, Empty, Row, Tabs } from 'antd';
-import { AccountSummaryCard } from '@/components/AccountSummaryCard/AccountSummaryCard';
-import { FundSearch } from '@/components/FundSearch/FundSearch';
-import { FundTable } from '@/components/FundTable/FundTable';
-import { IncomeLineChart } from '@/components/IncomeLineChart/IncomeLineChart';
-import { useIncomeLines } from '@/hooks/useIncomeLines';
-import type { AccountItem } from '@/types/portfolio';
+import { useMemo, useState } from "react";
+import { Card, Col, Empty, Row, Tabs } from "antd";
+import { AccountSummaryCard } from "@/components/AccountSummaryCard/AccountSummaryCard";
+import { FundSearch } from "@/components/FundSearch/FundSearch";
+import { FundTable } from "@/components/FundTable/FundTable";
+import { IncomeLineChart } from "@/components/IncomeLineChart/IncomeLineChart";
+import { useIncomeLines } from "@/hooks/useIncomeLines";
+import type { AccountItem } from "@/types/portfolio";
 
-const ALL_TAB = 'all';
+const ALL_TAB = "all";
 
 interface HoldingsPanelProps {
   accounts: AccountItem[];
   updatedAt?: string;
-  trading?: boolean;
   onAuthRequired?: () => void;
+  onRefresh?: () => void;
 }
 
 export function HoldingsPanel({
   accounts,
   updatedAt,
-  trading = false,
   onAuthRequired,
+  onRefresh,
 }: HoldingsPanelProps) {
   const [activeTab, setActiveTab] = useState<string>(ALL_TAB);
 
@@ -50,11 +50,10 @@ export function HoldingsPanel({
   const { collectLine, linesByAccount, loading, error } = useIncomeLines(
     accountIds,
     updatedAt,
-    trading,
   );
 
   const tabItems = [
-    { key: ALL_TAB, label: '全部' },
+    { key: ALL_TAB, label: "全部" },
     ...accounts.map((account) => ({
       key: String(account.account_id),
       label: account.title,
@@ -69,11 +68,16 @@ export function HoldingsPanel({
         items={tabItems}
         tabBarStyle={{ margin: 0, paddingLeft: 16, paddingRight: 16 }}
         tabBarExtraContent={
-          <FundSearch compact accounts={accounts} onAuthRequired={onAuthRequired} />
+          <FundSearch
+            compact
+            accounts={accounts}
+            onAuthRequired={onAuthRequired}
+            onRefresh={onRefresh}
+          />
         }
       />
 
-      <div style={{ padding: '20px 24px 24px' }}>
+      <div style={{ padding: "16px 24px 24px" }}>
         {activeTab === ALL_TAB ? (
           <>
             <IncomeLineChart
@@ -119,6 +123,7 @@ export function HoldingsPanel({
                 funds={activeAccount.funds}
                 updatedAt={updatedAt}
                 onAuthRequired={onAuthRequired}
+                onRefresh={onRefresh}
                 embedded
               />
             </div>
