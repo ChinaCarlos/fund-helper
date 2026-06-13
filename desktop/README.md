@@ -4,10 +4,14 @@
 
 ## 下载
 
+> Releases 页在 **首次 CI 成功前为空**。构建完成后在此下载：
+
 | 平台 | 文件 | 链接 |
 |------|------|------|
-| macOS（Universal） | `.dmg` | [GitHub Releases](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
-| Windows（x64） | 安装包 `.exe` | [GitHub Releases](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
+| macOS | `Fund-Helper-0.1.0-macos.dmg` | [Release desktop-v0.1.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.0) |
+| Windows | `Fund-Helper-0.1.0-windows-setup.exe` | 同上 |
+
+查看构建是否完成：[Actions → Desktop Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml)
 
 ## 功能
 

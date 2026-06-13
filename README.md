@@ -14,22 +14,31 @@
 
 ## 桌面端下载
 
-| 平台 | 说明 | 下载 |
-|------|------|------|
-| **macOS** | Universal（Apple Silicon + Intel），`.dmg` 安装 | [GitHub Releases 最新版](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
-| **Windows** | x64 NSIS 安装包 | [GitHub Releases 最新版](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
+> **说明**：安装包由 GitHub Actions 构建并发布到 [Releases](https://github.com/ChinaCarlos/fund-helper/releases)。**首次发布前该页面为空**；需先 [触发构建](#触发桌面端-ci-构建) 并等待 workflow 完成（约 15–25 分钟）。
 
-安装包命名：`Fund-Helper-{version}-macos.dmg`、`Fund-Helper-{version}-windows-setup.exe`。
+| 平台 | 文件 | 下载（CI 完成后） |
+|------|------|-------------------|
+| **macOS** | `Fund-Helper-0.1.0-macos.dmg` | [desktop-v0.1.0 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.0) |
+| **Windows** | `Fund-Helper-0.1.0-windows-setup.exe` | 同上 Release 页 |
 
-维护者发包（**推荐 GitHub Actions，无需本机 cross-compile**）：
+构建进度：[Actions → Desktop Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml)
+
+### 触发桌面端 CI 构建
 
 ```bash
+# 方式 1：打 tag（已推送 desktop-v0.1.0 时会自动触发）
+git tag -a desktop-v0.1.0 -m "Desktop 0.1.0"
+git push origin desktop-v0.1.0
+
+# 方式 2：网页 Run workflow
+# https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml
+
+# 方式 3：脚本（需 gh login）
 chmod +x publish-desktop.sh
-./publish-desktop.sh 0.1.0 --release    # 触发 CI 构建 macOS + Windows
-./publish-desktop.sh 0.1.0 --collect    # 下载产物到 assets/releases/
+./publish-desktop.sh 0.1.0 --release
 ```
 
-也可在 GitHub → Actions → **Desktop Release** → Run workflow。
+构建完成后执行 `./publish-desktop.sh 0.1.0 --collect` 可将产物拉到本地 `assets/releases/`。
 
 详见 [assets/releases/README.md](./assets/releases/README.md)。
 
