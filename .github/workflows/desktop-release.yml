@@ -1,0 +1,168 @@
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - 'desktop-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Desktop version (e.g. 0.1.0)'
+        required: true
+        default: '0.1.0'
+
+permissions:
+  contents: write
+
+env:
+  DESKTOP_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            os_name: macos
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+          - platform: windows-latest
+            os_name: windows
+            rust_targets: ''
+
+    runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        working-directory: desktop
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#desktop-v}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Building desktop v${VERSION} on ${{ matrix.os_name }}"
+
+      - name: Sync version files
+        shell: bash
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            const tauri = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));
+            tauri.version = process.env.VERSION;
+            fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tauri, null, 2) + '\n');
+          "
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri (macOS universal)
+        if: matrix.os_name == 'macos'
+        run: pnpm tauri build --target universal-apple-darwin
+
+      - name: Build Tauri (Windows)
+        if: matrix.os_name == 'windows'
+        run: pnpm tauri build
+
+      - name: Rename macOS artifact
+        if: matrix.os_name == 'macos'
+        shell: bash
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          DMG=$(find src-tauri/target -name '*.dmg' | head -1)
+          mkdir -p ../../artifacts
+          cp "$DMG" "../../artifacts/Fund-Helper-${VERSION}-macos.dmg"
+
+      - name: Rename Windows artifact
+        if: matrix.os_name == 'windows'
+        shell: pwsh
+        run: |
+          $version = "${{ steps.ver.outputs.version }}"
+          $exe = Get-ChildItem -Path src-tauri/target -Recurse -Include *setup*.exe,*.msi | Select-Object -First 1
+          New-Item -ItemType Directory -Force -Path ../../artifacts | Out-Null
+          Copy-Item $exe.FullName "../../artifacts/Fund-Helper-${version}-windows-setup.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os_name }}
+          path: artifacts/
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "tag=desktop-v${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#desktop-v}" >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find artifacts -type f
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Fund Helper Desktop v${{ steps.ver.outputs.version }}
+          body: |
+            ## Fund Helper 桌面端 v${{ steps.ver.outputs.version }}
+
+            | 平台 | 文件 |
+            |------|------|
+            | macOS（Universal） | `Fund-Helper-${{ steps.ver.outputs.version }}-macos.dmg` |
+            | Windows（x64） | `Fund-Helper-${{ steps.ver.outputs.version }}-windows-setup.exe` |
+
+            安装后使用微信扫码登录养基宝即可查看持仓；通知配置见设置页。
+          files: artifacts/*
+          draft: false
+          prerelease: false

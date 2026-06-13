@@ -3,6 +3,12 @@ backend/__pycache__/
 backend/**/__pycache__/
 web/node_modules/
 web/dist/
+desktop/node_modules/
+desktop/dist/
+desktop/src-tauri/target/
+assets/releases/**/*
+!assets/releases/README.md
+!assets/releases/.gitkeep
 .DS_Store
 *.pyc
 .env

@@ -8,8 +8,28 @@
 |------|------|
 | **Web 应用** | 完整功能：持仓、市场排行、板块热力图、通知推送、多用户管理 |
 | **浏览器插件** | 轻量 Popup：微信扫码登录养基宝，工具栏一键查看持仓与当日收益（无需后端） |
+| **桌面端** | Tauri + Rust：单用户本地 SQLite，扫码登录；持仓、收益曲线、飞书/钉钉/企微通知推送、系统托盘 |
 
-详见 [chrome-extension/README.md](./chrome-extension/README.md)。
+详见 [chrome-extension/README.md](./chrome-extension/README.md) 与 [desktop/README.md](./desktop/README.md)。
+
+## 桌面端下载
+
+| 平台 | 说明 | 下载 |
+|------|------|------|
+| **macOS** | Universal（Apple Silicon + Intel），`.dmg` 安装 | [GitHub Releases 最新版](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
+| **Windows** | x64 NSIS 安装包 | [GitHub Releases 最新版](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
+
+安装包命名：`Fund-Helper-{version}-macos.dmg`、`Fund-Helper-{version}-windows-setup.exe`。
+
+维护者发包：
+
+```bash
+chmod +x publish-desktop.sh
+./publish-desktop.sh 0.1.0 --local      # 本机构建当前平台 → assets/releases/
+./publish-desktop.sh 0.1.0 --release    # 打 tag，CI 构建 macOS + Windows 并发布
+```
+
+详见 [assets/releases/README.md](./assets/releases/README.md)。
 
 ## 技术栈
 
@@ -18,6 +38,7 @@
 | 后端 | Python 3.12 · FastAPI · httpx |
 | 前端 | React 19 · TypeScript · Rsbuild · Ant Design · pnpm（`web/`） |
 | 浏览器插件 | CRXJS · Vite · React 19 · TypeScript · Manifest V3 |
+| 桌面端 | Tauri v2 · Rust · React 19 · Tailwind v4（`desktop/`） |
 | 部署 | Docker · docker compose |
 
 ## 环境要求
@@ -201,6 +222,16 @@ chmod +x dev-infra.sh start.sh
 
 安装与开发见 [chrome-extension/README.md](./chrome-extension/README.md)。
 
+### 桌面端（`desktop/`）
+
+- **macOS / Windows** 原生客户端（Tauri v2 + Rust），无需部署后端
+- 微信扫码登录养基宝；Token 存系统密钥链，配置存本地 SQLite
+- 持仓：大盘指数、汇总卡片、多账户 Tab、基金排序、分组收益曲线（SVG）
+- **消息通知**：钉钉 / 飞书 / 企业微信（Webhook 或飞书应用 IM 卡片），手动刷新 / 定时推送
+- 浅色 / 深色主题、系统托盘、单实例
+
+开发与打包见 [desktop/README.md](./desktop/README.md)；安装包见上文 [桌面端下载](#桌面端下载)。
+
 ---
 
 ## 目录结构
@@ -215,6 +246,10 @@ fund-helper/
 ├── backend/
 ├── web/                    # Web 应用（React SPA）
 ├── chrome-extension/       # 浏览器插件（CRXJS + React Popup）
+├── desktop/                # 桌面端（Tauri + Rust）
+├── assets/releases/        # 桌面端安装包（本地构建输出，见 README）
+├── publish-desktop.sh      # 桌面端发包脚本
+├── publish-image.sh        # Docker 镜像发布脚本
 ├── TECH.md
 └── API_README.md           # 养基宝上游 API
 ```
