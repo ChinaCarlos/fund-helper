@@ -12,6 +12,8 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from qrcode.constants import ERROR_CORRECT_H
 
+from app.market.fund_rank import get_fund_rank, get_fund_rank_options
+from app.market.schemas import FundRankOptionsResponse, FundRankResponse, RankDimension, RankScope
 from app.notify.delivery_catalog import list_delivery_chats
 from app.notify.feishu_group import create_feishu_notification_group
 from app.notify.schemas import (
@@ -364,3 +366,39 @@ async def notify_push(request: Request) -> PushResponse:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return await push_portfolio_notification(config, snapshot)
+
+
+@router.get("/market/rank/options", response_model=FundRankOptionsResponse)
+async def market_rank_options(request: Request) -> FundRankOptionsResponse:
+    """市场基金排行筛选项（维度、类型、指数板块、主题板块）。"""
+    _require_login(request)
+    return await get_fund_rank_options()
+
+
+@router.get("/market/rank", response_model=FundRankResponse)
+async def market_rank(
+    request: Request,
+    dimension: RankDimension = Query("day"),
+    scope: RankScope = Query("open"),
+    fund_type: str = Query("全部"),
+    board: str = Query("全部"),
+    sector: str = Query(""),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    order: str = Query("desc", pattern="^(asc|desc)$"),
+) -> FundRankResponse:
+    """全市场基金排行（AKShare / 东方财富）。"""
+    _require_login(request)
+    try:
+        return await get_fund_rank(
+            dimension=dimension,
+            scope=scope,
+            fund_type=fund_type,
+            board=board,
+            sector=sector,
+            page=page,
+            page_size=page_size,
+            order=order,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"拉取市场排行失败：{exc}") from exc

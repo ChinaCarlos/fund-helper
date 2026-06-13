@@ -6,7 +6,6 @@ from typing import Any
 
 # 企业微信单条文本建议控制在 2KB 内
 DEFAULT_MAX_LENGTH = 1800
-MAX_FUNDS_PER_ACCOUNT = 8
 
 
 def _to_float(value: Any, default: float = 0.0) -> float:
@@ -190,10 +189,8 @@ def build_portfolio_notification(
                 f"  当日收益：{format_signed_amount(acc_income)}（{format_percent(acc_rate)}）"
             )
             funds = _sort_funds_by_day_earn(account.get("funds") or [])
-            for fund in funds[:MAX_FUNDS_PER_ACCOUNT]:
+            for fund in funds:
                 lines.append(_format_fund_line(fund))
-            if len(funds) > MAX_FUNDS_PER_ACCOUNT:
-                lines.append(f"  · … 另有 {len(funds) - MAX_FUNDS_PER_ACCOUNT} 只基金")
             lines.append("")
 
     lines.append("——")
@@ -264,7 +261,7 @@ def build_feishu_interactive_card(
             acc_rate = _to_float(account.get("today_income_rate"))
             fund_lines: list[str] = []
             funds = _sort_funds_by_day_earn(account.get("funds") or [])
-            for fund in funds[:MAX_FUNDS_PER_ACCOUNT]:
+            for fund in funds:
                 name = fund.get("short_name") or fund.get("code") or "未知"
                 code = fund.get("code") or ""
                 earn = _to_float(fund.get("day_earn"))
@@ -273,10 +270,6 @@ def build_feishu_interactive_card(
                 fund_lines.append(
                     f"{_trend_emoji_bold(earn)} {label}  "
                     f"{_feishu_colored_amount(earn)}  {_feishu_colored_rate(rate)}"
-                )
-            if len(funds) > MAX_FUNDS_PER_ACCOUNT:
-                fund_lines.append(
-                    f"▫️ … 另有 {len(funds) - MAX_FUNDS_PER_ACCOUNT} 只基金"
                 )
 
             content = (

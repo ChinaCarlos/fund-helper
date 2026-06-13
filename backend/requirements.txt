@@ -5,3 +5,4 @@ pydantic>=2.10.0
 pydantic-settings>=2.6.0
 qrcode[pil]>=8.0
 python-multipart>=0.0.18
+akshare>=1.16.0
