@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# Fund Helper 桌面端发包脚本
+# Fund Helper 桌面端发包 — 推荐走 GitHub Actions 双平台构建
 #
 # 用法:
-#   ./publish-desktop.sh [版本号] [--local|--release|--collect]
+#   ./publish-desktop.sh [版本号] [--release|--collect|--local]
 #
-# 模式:
-#   --local     仅在本机构建当前平台，产物复制到 assets/releases/v{版本}/
-#   --release   打 tag 并推送，触发 GitHub Actions 构建 macOS + Windows（需 gh、git 写权限）
-#   --collect   从最近一次 Desktop Release 工作流下载产物到 assets/releases/
+# 模式（默认 --release）:
+#   --release   触发 GitHub Actions 构建 macOS + Windows 并发布 Release（推荐）
+#   --collect   从最近一次 CI 下载产物到 assets/releases/
+#   --local     仅本机构建当前平台（开发调试用，Mac 无法 cross-compile Windows）
 #
 # 示例:
-#   ./publish-desktop.sh 0.1.0 --local          # Mac 上本地打 macOS 包
-#   ./publish-desktop.sh 0.1.0 --release        # CI 双平台发布到 GitHub Releases
-#   ./publish-desktop.sh 0.1.0 --collect        # 拉取 CI 产物到 assets/
+#   ./publish-desktop.sh 0.1.0              # 等同 --release
+#   ./publish-desktop.sh 0.1.0 --collect    # 下载 CI 产物
 
 set -euo pipefail
 
@@ -20,9 +19,10 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 DESKTOP="$ROOT/desktop"
 RELEASES_DIR="$ROOT/assets/releases"
 GITHUB_REPO="${GITHUB_REPO:-ChinaCarlos/fund-helper}"
+WORKFLOW="desktop-release.yml"
 
 VERSION="${1:-}"
-MODE="${2:---local}"
+MODE="${2:---release}"
 
 if [[ -z "$VERSION" ]]; then
   VERSION="$(node -p "require('$DESKTOP/package.json').version")"
@@ -30,7 +30,6 @@ fi
 
 TAG="desktop-v${VERSION}"
 OUT="$RELEASES_DIR/v${VERSION}"
-BUNDLE_DIR="$DESKTOP/src-tauri/target/release/bundle"
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf '错误: %s\n' "$*" >&2; exit 1; }
@@ -55,131 +54,102 @@ EOF
   fi
 }
 
-install_deps() {
-  log "安装前端依赖"
-  (cd "$DESKTOP" && pnpm install --frozen-lockfile)
-}
+release_ci() {
+  sync_version
 
-build_local() {
-  install_deps
-  log "Tauri 构建（本机平台）"
-  (cd "$DESKTOP" && pnpm tauri:build)
+  log "触发 GitHub Actions: ${WORKFLOW} (version=${VERSION})"
 
-  mkdir -p "$OUT/macos" "$OUT/windows"
-
-  local copied=0
-  while IFS= read -r -d '' file; do
-    local name
-    name="$(basename "$file")"
-    case "$name" in
-      *.dmg)
-        cp "$file" "$OUT/macos/Fund-Helper-${VERSION}-macos.dmg"
-        copied=1
-        log "macOS: $OUT/macos/Fund-Helper-${VERSION}-macos.dmg"
-        ;;
-      *.app.tar.gz|*.app)
-        cp "$file" "$OUT/macos/"
-        copied=1
-        ;;
-    esac
-  done < <(find "$BUNDLE_DIR" -type f \( -name '*.dmg' -o -name '*.app.tar.gz' \) -print0 2>/dev/null || true)
-
-  while IFS= read -r -d '' file; do
-    cp "$file" "$OUT/windows/Fund-Helper-${VERSION}-windows-setup.exe"
-    copied=1
-    log "Windows: $OUT/windows/Fund-Helper-${VERSION}-windows-setup.exe"
-  done < <(find "$BUNDLE_DIR" -type f \( -name '*setup*.exe' -o -name '*.msi' \) -print0 2>/dev/null || true)
-
-  if [[ "$copied" -eq 0 ]]; then
-    die "未找到安装包，请检查 $BUNDLE_DIR"
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    gh workflow run "$WORKFLOW" \
+      --repo "$GITHUB_REPO" \
+      -f "version=${VERSION}"
+    log "已提交 workflow，等待构建…"
+    log "进度: gh run list --workflow=${WORKFLOW} --repo ${GITHUB_REPO}"
+    log "完成后下载: ./publish-desktop.sh ${VERSION} --collect"
+    log "Release 页: https://github.com/${GITHUB_REPO}/releases/tag/${TAG}"
+    return
   fi
 
+  cat <<EOF
+
+未检测到 gh 或未登录。请任选一种方式触发 CI：
+
+【方式 A】GitHub 网页（无需 gh）
+  1. 打开 https://github.com/${GITHUB_REPO}/actions/workflows/${WORKFLOW}
+  2. 点击 Run workflow，填写 version = ${VERSION}
+  3. 构建完成后在 Releases 下载安装包
+
+【方式 B】命令行
+  brew install gh && gh auth login
+  ./publish-desktop.sh ${VERSION} --release
+
+【方式 C】打 tag 触发（需先 commit 并 push 代码）
+  git tag -a ${TAG} -m "Desktop ${VERSION}"
+  git push origin ${TAG}
+
+EOF
+}
+
+collect_ci() {
+  command -v gh >/dev/null 2>&1 || die "需要 GitHub CLI: brew install gh && gh auth login"
+
+  local run_id
+  run_id="$(gh run list --workflow="$WORKFLOW" --repo "$GITHUB_REPO" --limit 1 --json databaseId,status --jq '.[] | select(.status=="completed") | .databaseId' | head -1)"
+  [[ -n "$run_id" && "$run_id" != "null" ]] || die "未找到已完成的 desktop-release 运行记录，请先 --release 或稍后再试"
+
+  log "下载 workflow run #${run_id}"
+  rm -rf "$OUT"
+  mkdir -p "$OUT/macos" "$OUT/windows"
+  gh run download "$run_id" --repo "$GITHUB_REPO" --dir "$OUT/_dl"
+
+  find "$OUT/_dl" -name '*.dmg' | while read -r f; do
+    cp "$f" "$OUT/macos/Fund-Helper-${VERSION}-macos.dmg"
+  done
+  find "$OUT/_dl" -name '*setup*.exe' -o -name '*.exe' | head -1 | while read -r f; do
+    [[ -n "$f" ]] && cp "$f" "$OUT/windows/Fund-Helper-${VERSION}-windows-setup.exe"
+  done
+  rm -rf "$OUT/_dl"
+
   write_manifest
-  log "完成。产物目录: $OUT"
+  log "已保存到 $OUT"
 }
 
 write_manifest() {
+  mkdir -p "$OUT"
   cat > "$OUT/manifest.json" <<EOF
 {
   "version": "${VERSION}",
   "tag": "${TAG}",
   "repo": "${GITHUB_REPO}",
   "artifacts": {
-    "macos": "Fund-Helper-${VERSION}-macos.dmg",
-    "windows": "Fund-Helper-${VERSION}-windows-setup.exe"
+    "macos": "macos/Fund-Helper-${VERSION}-macos.dmg",
+    "windows": "windows/Fund-Helper-${VERSION}-windows-setup.exe"
   },
   "downloadBase": "https://github.com/${GITHUB_REPO}/releases/download/${TAG}"
 }
 EOF
 }
 
-release_ci() {
-  command -v gh >/dev/null 2>&1 || die "需要 GitHub CLI (gh)，安装: brew install gh"
-  gh auth status >/dev/null 2>&1 || die "请先 gh auth login"
-
-  sync_version
-
-  log "创建并推送 tag: ${TAG}"
-  git -C "$ROOT" tag -a "$TAG" -m "Desktop release ${VERSION}" 2>/dev/null || git -C "$ROOT" tag -f "$TAG" -m "Desktop release ${VERSION}"
-  git -C "$ROOT" push origin "$TAG"
-
-  log "已触发 GitHub Actions 构建 macOS + Windows"
-  log "查看进度: gh run list --workflow=desktop-release.yml --repo ${GITHUB_REPO}"
-  log "发布后下载页: https://github.com/${GITHUB_REPO}/releases/tag/${TAG}"
-}
-
-collect_ci() {
-  command -v gh >/dev/null 2>&1 || die "需要 GitHub CLI (gh)"
-
-  local run_id
-  run_id="$(gh run list --workflow=desktop-release.yml --repo "$GITHUB_REPO" --limit 1 --json databaseId --jq '.[0].databaseId')"
-  [[ -n "$run_id" && "$run_id" != "null" ]] || die "未找到 desktop-release 工作流运行记录"
-
-  log "下载 workflow run #${run_id} 产物"
-  rm -rf "$OUT"
-  mkdir -p "$OUT"
-  gh run download "$run_id" --repo "$GITHUB_REPO" --dir "$OUT"
-
-  # 归一化文件名
-  find "$OUT" -name '*.dmg' -exec sh -c 'mv "$1" "$(dirname "$1")/Fund-Helper-'"${VERSION}"'-macos.dmg"' _ {} \; 2>/dev/null || true
-  find "$OUT" -name '*setup*.exe' -o -name '*.exe' | head -1 | while read -r f; do
-    mv "$f" "$OUT/Fund-Helper-${VERSION}-windows-setup.exe" 2>/dev/null || true
-  done
-
-  write_manifest
-  log "已保存到 $OUT"
+build_local() {
+  die "本地双平台打包不可用（Mac 无法 cross-compile Windows）。请使用: ./publish-desktop.sh ${VERSION} --release"
 }
 
 print_download_urls() {
   cat <<EOF
 
-下载地址（GitHub Releases）:
-  macOS:   https://github.com/${GITHUB_REPO}/releases/download/${TAG}/Fund-Helper-${VERSION}-macos.dmg
-  Windows: https://github.com/${GITHUB_REPO}/releases/download/${TAG}/Fund-Helper-${VERSION}-windows-setup.exe
+GitHub Releases 下载:
+  https://github.com/${GITHUB_REPO}/releases/tag/${TAG}
 
-本地目录:
-  ${OUT}/
+  macOS:   Fund-Helper-${VERSION}-macos.dmg
+  Windows: Fund-Helper-${VERSION}-windows-setup.exe
 
 EOF
 }
 
 case "$MODE" in
-  --local|--local-only)
-    sync_version
-    build_local
-    print_download_urls
-    ;;
-  --release|--ci)
-    release_ci
-    ;;
-  --collect)
-    collect_ci
-    print_download_urls
-    ;;
-  --help|-h)
-    sed -n '2,20p' "$0"
-    ;;
-  *)
-    die "未知模式: ${MODE}（可用 --local | --release | --collect）"
-    ;;
+  --release|--ci) release_ci ;;
+  --collect) collect_ci; print_download_urls ;;
+  --local|--local-only) build_local ;;
+  --help|-h) sed -n '2,18p' "$0" ;;
+  *) die "未知模式: ${MODE}（可用 --release | --collect | --local）" ;;
 esac

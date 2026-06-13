@@ -233,7 +233,7 @@ Dashboard
 |------|----------|--------|
 | 数据路径 | 浏览器 → FastAPI → 养基宝 | Tauri → Rust → 养基宝 |
 | 登录 | 账号密码 + 养基宝绑定 | 微信扫码 |
-| 会话存储 | MongoDB + Cookie | Keychain + SQLite |
+| 会话存储 | MongoDB + Cookie | SQLite `app_profile.yjb_token` |
 | 通知配置 | MongoDB `notification_configs` | SQLite `notification_config` |
 | 签名实现 | `yjb/client.py` | `yjb.rs` |
 | 快照聚合 | `calculator.py` | `portfolio.rs` |
@@ -1719,8 +1719,8 @@ Chrome → `chrome://extensions` → 开发者模式 → 加载 `dist/`。
 |----|------|
 | 壳 | Tauri v2 |
 | 前端 | React 19 · TypeScript · Ant Design · Tailwind v4 |
-| 后端 | Rust · reqwest · rusqlite · keyring |
-| 存储 | SQLite（`data.db`）+ 系统密钥链（Token） |
+| 后端 | Rust · reqwest · rusqlite |
+| 存储 | SQLite（`data.db`）：登录 Token、通知配置、推送时间戳 |
 | 托盘 | `tauri-plugin-single-instance` + 系统托盘 |
 
 ### 18.3 应用阶段（`App.tsx`）
@@ -1739,7 +1739,7 @@ boot → getAuthStatus()
 | 养基宝客户端 | `yjb.rs` | QR 登录、签名、`fund_hold`、`income_line_data` |
 | 持仓聚合 | `portfolio.rs` | `fetch_portfolio_snapshot`、交易时段 |
 | 收益曲线 | `income.rs` | 曲线数据归一化 |
-| 持久化 | `db.rs` | SQLite、`notification_config`、`push_schedule` |
+| 持久化 | `db.rs` | SQLite 读写（`app_profile`、`notification_config`、`push_schedule`） |
 | Tauri 命令 | `commands.rs` | 前端 invoke 入口 |
 | 通知推送 | `notify/push.rs` | 校验、Webhook + 飞书应用分发 |
 | 飞书 IM | `notify/feishu_app.rs` | tenant_token、IM 卡片 |
@@ -1758,6 +1758,18 @@ boot → getAuthStatus()
 
 配置读写：`save_notification_config` / `get_notification_config`（SQLite JSON）。
 
+### 18.5.1 本地存储（`db.rs`）
+
+所有持久化数据在 `data.db` 单库中，Rust 通过 `rusqlite` 直接读写：
+
+| 表 | 字段/用途 |
+|----|-----------|
+| `app_profile` | `yjb_token` 养基宝 Token；`nickname` / `avatar` / `login_time` 登录信息 |
+| `notification_config` | `config_json` 通知渠道与触发策略 |
+| `push_schedule` | `last_scheduled_push_ms` 定时推送节流 |
+
+不使用 macOS 钥匙串 / Windows Credential Manager；`require_token()` 从 `app_profile.yjb_token` 读取。
+
 ### 18.6 前端要点
 
 | 区域 | 文件 |
@@ -1771,13 +1783,11 @@ boot → getAuthStatus()
 ### 18.7 开发与发布
 
 ```bash
-cd desktop && pnpm tauri:dev          # 开发
-cd desktop && pnpm tauri:build        # 本机打包
-./publish-desktop.sh 0.1.0 --local    # 复制到 assets/releases/
-./publish-desktop.sh 0.1.0 --release  # CI 双平台 GitHub Release
+./publish-desktop.sh 0.1.0 --release    # 触发 GitHub Actions 双平台构建
+./publish-desktop.sh 0.1.0 --collect    # 下载 CI 产物到 assets/releases/
 ```
 
-CI：`.github/workflows/desktop-release.yml`，tag `desktop-v*` 触发 macOS Universal + Windows x64 构建。
+CI：`.github/workflows/desktop-release.yml`（`workflow_dispatch` 或 tag `desktop-v*`）。
 
 ### 18.8 与 Web 对照
 

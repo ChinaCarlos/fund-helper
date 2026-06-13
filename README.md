@@ -21,13 +21,15 @@
 
 安装包命名：`Fund-Helper-{version}-macos.dmg`、`Fund-Helper-{version}-windows-setup.exe`。
 
-维护者发包：
+维护者发包（**推荐 GitHub Actions，无需本机 cross-compile**）：
 
 ```bash
 chmod +x publish-desktop.sh
-./publish-desktop.sh 0.1.0 --local      # 本机构建当前平台 → assets/releases/
-./publish-desktop.sh 0.1.0 --release    # 打 tag，CI 构建 macOS + Windows 并发布
+./publish-desktop.sh 0.1.0 --release    # 触发 CI 构建 macOS + Windows
+./publish-desktop.sh 0.1.0 --collect    # 下载产物到 assets/releases/
 ```
+
+也可在 GitHub → Actions → **Desktop Release** → Run workflow。
 
 详见 [assets/releases/README.md](./assets/releases/README.md)。
 
@@ -225,7 +227,7 @@ chmod +x dev-infra.sh start.sh
 ### 桌面端（`desktop/`）
 
 - **macOS / Windows** 原生客户端（Tauri v2 + Rust），无需部署后端
-- 微信扫码登录养基宝；Token 存系统密钥链，配置存本地 SQLite
+- 微信扫码登录养基宝；登录态与通知配置均存本地 SQLite
 - 持仓：大盘指数、汇总卡片、多账户 Tab、基金排序、分组收益曲线（SVG）
 - **消息通知**：钉钉 / 飞书 / 企业微信（Webhook 或飞书应用 IM 卡片），手动刷新 / 定时推送
 - 浅色 / 深色主题、系统托盘、单实例

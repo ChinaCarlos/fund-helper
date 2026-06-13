@@ -13,8 +13,6 @@ pub enum AppError {
     Network(#[from] reqwest::Error),
     #[error("数据库错误: {0}")]
     Database(#[from] rusqlite::Error),
-    #[error("密钥链错误: {0}")]
-    Keyring(#[from] keyring::Error),
 }
 
 impl AppError {

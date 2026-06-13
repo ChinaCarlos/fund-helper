@@ -7,9 +7,6 @@ use tauri::{AppHandle, Manager};
 
 use crate::error::{AppError, AppResult};
 
-const KEYRING_SERVICE: &str = "fund-helper-desktop";
-const KEYRING_USER: &str = "yjb_token";
-
 #[derive(Debug, Clone, Serialize)]
 pub struct AuthStatus {
     pub bound: bool,
@@ -48,7 +45,8 @@ impl SessionStore {
               id INTEGER PRIMARY KEY CHECK (id = 1),
               nickname TEXT NOT NULL DEFAULT '',
               avatar TEXT NOT NULL DEFAULT '',
-              login_time TEXT NOT NULL DEFAULT ''
+              login_time TEXT NOT NULL DEFAULT '',
+              yjb_token TEXT NOT NULL DEFAULT ''
             );
             INSERT OR IGNORE INTO app_profile (id) VALUES (1);
 
@@ -66,31 +64,52 @@ impl SessionStore {
             INSERT OR IGNORE INTO push_schedule (id) VALUES (1);
             ",
         )?;
+        Self::ensure_token_column(&conn)?;
         Ok(())
     }
 
-    fn save_token(token: &str) -> AppResult<()> {
-        let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)?;
-        entry.set_password(token)?;
+    fn ensure_token_column(conn: &Connection) -> AppResult<()> {
+        let has_column = conn
+            .prepare("PRAGMA table_info(app_profile)")?
+            .query_map([], |row| row.get::<_, String>(1))?
+            .filter_map(|r| r.ok())
+            .any(|name| name == "yjb_token");
+        if !has_column {
+            conn.execute(
+                "ALTER TABLE app_profile ADD COLUMN yjb_token TEXT NOT NULL DEFAULT ''",
+                [],
+            )?;
+        }
         Ok(())
     }
 
-    fn load_token() -> AppResult<Option<String>> {
-        let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)?;
-        match entry.get_password() {
-            Ok(token) if !token.is_empty() => Ok(Some(token)),
-            Ok(_) => Ok(None),
-            Err(keyring::Error::NoEntry) => Ok(None),
-            Err(err) => Err(AppError::from(err)),
+    fn save_token(conn: &Connection, token: &str) -> AppResult<()> {
+        conn.execute(
+            "UPDATE app_profile SET yjb_token = ?1 WHERE id = 1",
+            params![token],
+        )?;
+        Ok(())
+    }
+
+    fn load_token(conn: &Connection) -> AppResult<Option<String>> {
+        let token: String = conn.query_row(
+            "SELECT yjb_token FROM app_profile WHERE id = 1",
+            [],
+            |row| row.get(0),
+        )?;
+        if token.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(token))
         }
     }
 
-    fn clear_token() -> AppResult<()> {
-        let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)?;
-        match entry.delete_credential() {
-            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-            Err(err) => Err(AppError::from(err)),
-        }
+    fn clear_token(conn: &Connection) -> AppResult<()> {
+        conn.execute(
+            "UPDATE app_profile SET yjb_token = '' WHERE id = 1",
+            [],
+        )?;
+        Ok(())
     }
 
     pub fn save_session(
@@ -100,8 +119,8 @@ impl SessionStore {
         avatar: &str,
         login_time: &str,
     ) -> AppResult<()> {
-        Self::save_token(token)?;
         let conn = self.conn()?;
+        Self::save_token(&conn, token)?;
         conn.execute(
             "UPDATE app_profile SET nickname = ?1, avatar = ?2, login_time = ?3 WHERE id = 1",
             params![nickname, avatar, login_time],
@@ -110,8 +129,8 @@ impl SessionStore {
     }
 
     pub fn auth_status(&self) -> AppResult<AuthStatus> {
-        let token = Self::load_token()?;
         let conn = self.conn()?;
+        let token = Self::load_token(&conn)?;
         let (nickname, avatar, login_time): (String, String, String) = conn.query_row(
             "SELECT nickname, avatar, login_time FROM app_profile WHERE id = 1",
             [],
@@ -127,12 +146,13 @@ impl SessionStore {
     }
 
     pub fn require_token(&self) -> AppResult<String> {
-        Self::load_token()?.ok_or(AppError::msg("未绑定养基宝，请先扫码登录"))
+        let conn = self.conn()?;
+        Self::load_token(&conn)?.ok_or(AppError::msg("未绑定养基宝，请先扫码登录"))
     }
 
     pub fn clear_session(&self) -> AppResult<()> {
-        Self::clear_token()?;
         let conn = self.conn()?;
+        Self::clear_token(&conn)?;
         conn.execute(
             "UPDATE app_profile SET nickname = '', avatar = '', login_time = '' WHERE id = 1",
             [],

@@ -1,45 +1,48 @@
 # 桌面端发布产物
 
-本目录用于存放 **Fund Helper 桌面端** 安装包（本地构建或从 CI 拉取）。
+安装包由 **GitHub Actions** 在云端构建（macOS Universal + Windows x64），**无需在本机 cross-compile**。
 
-> 二进制安装包默认不提交 Git；请通过 [GitHub Releases](https://github.com/ChinaCarlos/fund-helper/releases) 下载，或使用 `./publish-desktop.sh` 本地生成。
+> 二进制默认不提交 Git；从 [GitHub Releases](https://github.com/ChinaCarlos/fund-helper/releases) 下载。
 
-## 目录结构
-
-```
-assets/releases/
-├── README.md                 # 本说明
-└── v0.1.0/                   # 按版本号分目录（本地构建输出）
-    ├── manifest.json         # 版本与下载 URL 元数据
-    ├── macos/
-    │   └── Fund-Helper-0.1.0-macos.dmg
-    └── windows/
-        └── Fund-Helper-0.1.0-windows-setup.exe
-```
-
-## 下载地址（GitHub Releases）
+## 下载地址
 
 | 平台 | 文件 | 链接 |
 |------|------|------|
-| macOS（Universal，Apple Silicon + Intel） | `Fund-Helper-{version}-macos.dmg` | [最新版](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
-| Windows（x64） | `Fund-Helper-{version}-windows-setup.exe` | [最新版](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
+| macOS（Universal） | `Fund-Helper-{version}-macos.dmg` | [最新 Release](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
+| Windows（x64） | `Fund-Helper-{version}-windows-setup.exe` | [最新 Release](https://github.com/ChinaCarlos/fund-helper/releases/latest) |
 
-固定版本示例（`desktop-v0.1.0` tag）：
+## 维护者：触发 CI 构建
 
-- macOS: https://github.com/ChinaCarlos/fund-helper/releases/download/desktop-v0.1.0/Fund-Helper-0.1.0-macos.dmg
-- Windows: https://github.com/ChinaCarlos/fund-helper/releases/download/desktop-v0.1.0/Fund-Helper-0.1.0-windows-setup.exe
-
-## 维护者发包
+### 方式 A — 命令行（推荐）
 
 ```bash
+brew install gh && gh auth login   # 首次
 chmod +x publish-desktop.sh
 
-# 本机仅打当前平台（Mac 上 → .dmg）
-./publish-desktop.sh 0.1.0 --local
+./publish-desktop.sh 0.1.0 --release   # 触发 Actions
+./publish-desktop.sh 0.1.0 --collect # 下载到 assets/releases/v0.1.0/
+```
 
-# 双平台 CI 发布（打 tag desktop-v0.1.0，需 gh login）
-./publish-desktop.sh 0.1.0 --release
+### 方式 B — GitHub 网页
 
-# 从 CI 拉取产物到本目录
-./publish-desktop.sh 0.1.0 --collect
+1. 打开 [Desktop Release 工作流](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml)
+2. 点击 **Run workflow**，填写 `version`（如 `0.1.0`）
+3. 等待完成后在 [Releases](https://github.com/ChinaCarlos/fund-helper/releases) 下载
+
+### 方式 C — 打 tag
+
+```bash
+git tag -a desktop-v0.1.0 -m "Desktop 0.1.0"
+git push origin desktop-v0.1.0
+```
+
+## 本地目录（可选）
+
+`--collect` 会将 CI 产物保存为：
+
+```
+assets/releases/v0.1.0/
+├── manifest.json
+├── macos/Fund-Helper-0.1.0-macos.dmg
+└── windows/Fund-Helper-0.1.0-windows-setup.exe
 ```

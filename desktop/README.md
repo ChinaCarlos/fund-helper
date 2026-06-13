@@ -13,7 +13,7 @@
 
 | 功能 | 说明 |
 |------|------|
-| 微信扫码登录 | Rust 直连养基宝 QR 接口；Token 存系统密钥链 |
+| 微信扫码登录 | Rust 直连养基宝 QR 接口；登录态存本地 SQLite |
 | 持仓查看 | 四大指数、汇总卡片、多账户 Tab、基金排序 |
 | 收益曲线 | 汇总 + 分组 SVG 曲线（`income_line_data`） |
 | 消息通知 | 钉钉 / 飞书 / 企业微信；Webhook 或飞书应用 IM 互动卡片 |
@@ -31,7 +31,7 @@ React UI  ── Tauri invoke（无 HTTP 端口）──▶  Rust
                                               ├── yjb.rs           养基宝 API
                                               ├── portfolio.rs     快照聚合
                                               ├── income.rs        收益曲线
-                                              ├── db.rs            SQLite + Keychain
+                                              ├── db.rs            SQLite（Token + 配置）
                                               └── notify/          通知推送
                                                     ├── push.rs        推送调度
                                                     ├── feishu_app.rs  飞书应用 IM
@@ -40,15 +40,22 @@ React UI  ── Tauri invoke（无 HTTP 端口）──▶  Rust
                                                     └── webhook.rs     Webhook 发送
 ```
 
-### 本地数据
+### 本地数据（SQLite）
 
-| 项 | 路径 |
+数据文件 `data.db` 路径：
+
+| 平台 | 路径 |
+|------|------|
+| macOS | `~/Library/Application Support/com.fundhelper.desktop/data.db` |
+| Windows | `%APPDATA%\com.fundhelper.desktop\data.db` |
+
+| 表 | 内容 |
 |----|------|
-| SQLite | macOS: `~/Library/Application Support/com.fundhelper.desktop/data.db` |
-| | Windows: `%APPDATA%\com.fundhelper.desktop\data.db` |
-| Token | 系统密钥链（Keyring） |
+| `app_profile` | 养基宝 Token（`yjb_token`）、昵称、头像、登录时间 |
+| `notification_config` | 通知配置 JSON |
+| `push_schedule` | 上次定时推送时间戳 |
 
-SQLite 表：`notification_config`、`push_schedule`（上次定时推送时间）。
+登录态与通知凭据**均从 SQLite 读写**，不使用系统钥匙串。
 
 ## 环境要求
 
@@ -78,24 +85,23 @@ pnpm tauri:build
 # 产物: src-tauri/target/release/bundle/
 ```
 
-### 维护者：双平台发布
+### 维护者：双平台发布（GitHub Actions，推荐）
 
-在仓库根目录：
+**不在本机构建 Windows 包**；由 CI 在 macOS / Windows runner 上分别打包并发布到 GitHub Releases。
 
 ```bash
 chmod +x publish-desktop.sh
 
-# 本机打当前平台 → assets/releases/v{version}/
-./publish-desktop.sh 0.1.0 --local
-
-# GitHub Actions 构建 macOS + Windows 并发布 Release
+# 触发 CI 构建 macOS + Windows（需 gh login，或见脚本输出的网页方式）
 ./publish-desktop.sh 0.1.0 --release
 
-# 从 CI 拉取产物到 assets/releases/
+# 构建完成后下载到 assets/releases/
 ./publish-desktop.sh 0.1.0 --collect
 ```
 
-CI 工作流：`.github/workflows/desktop-release.yml`（tag 格式 `desktop-v*`）。
+或打开 [Actions → Desktop Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml) → **Run workflow**，填写版本号。
+
+CI 工作流：`.github/workflows/desktop-release.yml`
 
 ## 与 monorepo 其他端
 
