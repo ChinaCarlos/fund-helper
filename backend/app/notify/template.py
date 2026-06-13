@@ -388,3 +388,242 @@ def build_connectivity_test_card(snapshot: dict | None) -> dict[str, Any]:
             },
         ],
     }
+
+
+def _feishu_rank_line(index: int, item: dict, *, rate_key: str) -> str:
+    name = item.get("name") or item.get("code") or "—"
+    code = item.get("code") or ""
+    rate = _to_float(item.get(rate_key)) if item.get(rate_key) is not None else None
+    rate_text = format_percent(rate) if rate is not None else "—"
+    label = f"{name}({code})" if code else str(name)
+    emoji = _trend_emoji_bold(rate or 0.0)
+    return f"{emoji} **{index:>2}.** {label}  {_feishu_colored_rate(rate or 0.0) if rate is not None else rate_text}"
+
+
+def build_feishu_fund_rank_card(
+    items: list[dict],
+    *,
+    title: str,
+    subtitle: str,
+    rate_key: str = "day",
+    header_template: str = "red",
+) -> dict[str, Any]:
+    """基金排行飞书卡片。"""
+    left_lines: list[str] = []
+    right_lines: list[str] = []
+    for index, item in enumerate(items, start=1):
+        line = _feishu_rank_line(index, item, rate_key=rate_key)
+        if index <= 10:
+            left_lines.append(line)
+        else:
+            right_lines.append(line)
+
+    elements: list[dict[str, Any]] = [
+        {
+            "tag": "div",
+            "text": {
+                "tag": "lark_md",
+                "content": f"🕐 **{subtitle}**",
+            },
+        },
+        {"tag": "hr"},
+    ]
+
+    if left_lines and right_lines:
+        elements.append(
+            {
+                "tag": "div",
+                "fields": [
+                    {
+                        "is_short": False,
+                        "text": {
+                            "tag": "lark_md",
+                            "content": "\n".join(left_lines),
+                        },
+                    },
+                    {
+                        "is_short": False,
+                        "text": {
+                            "tag": "lark_md",
+                            "content": "\n".join(right_lines),
+                        },
+                    },
+                ],
+            }
+        )
+    elif left_lines:
+        elements.append(
+            {
+                "tag": "div",
+                "text": {"tag": "lark_md", "content": "\n".join(left_lines)},
+            }
+        )
+
+    elements.append({"tag": "hr"})
+    elements.append(
+        {
+            "tag": "note",
+            "elements": [{"tag": "plain_text", "content": "Fund Helper · 市场排行"}],
+        }
+    )
+
+    return {
+        "config": {"wide_screen_mode": True},
+        "header": {
+            "title": {"tag": "plain_text", "content": f"📈 {title}"},
+            "subtitle": {"tag": "plain_text", "content": subtitle},
+            "template": header_template,
+        },
+        "elements": elements,
+    }
+
+
+def _feishu_sector_lines(
+    items: list[dict],
+    *,
+    value_key: str,
+    value_formatter,
+) -> str:
+    lines: list[str] = []
+    for index, item in enumerate(items, start=1):
+        name = item.get("name") or "—"
+        raw = item.get(value_key)
+        value_text = value_formatter(raw) if raw is not None else "—"
+        if value_key == "change_rate" and isinstance(raw, (int, float)):
+            value_text = _feishu_colored_rate(float(raw))
+        elif value_key == "net_flow" and isinstance(raw, (int, float)):
+            color = "red" if raw >= 0 else "green"
+            value_text = f"<font color='{color}'>{raw:+.2f}亿</font>"
+        lines.append(f"**{index:>2}.** {name}  {value_text}")
+    return "\n".join(lines) if lines else "暂无数据"
+
+
+def build_feishu_sector_change_card(
+    *,
+    industry_gain: list[dict],
+    industry_loss: list[dict],
+    concept_gain: list[dict],
+    concept_loss: list[dict],
+    updated_at: str,
+    trading: bool,
+) -> dict[str, Any]:
+    trading_label = "交易时段" if trading else "非交易时段"
+    trading_icon = "🟢" if trading else "🌙"
+
+    def rate_fmt(value: Any) -> str:
+        if isinstance(value, (int, float)):
+            return _feishu_colored_rate(float(value))
+        return "—"
+
+    blocks = [
+        ("🏭 行业 · 涨幅", industry_gain, "change_rate", rate_fmt),
+        ("🏭 行业 · 跌幅", industry_loss, "change_rate", rate_fmt),
+        ("💡 概念 · 涨幅", concept_gain, "change_rate", rate_fmt),
+        ("💡 概念 · 跌幅", concept_loss, "change_rate", rate_fmt),
+    ]
+
+    elements: list[dict[str, Any]] = [
+        {
+            "tag": "div",
+            "text": {
+                "tag": "lark_md",
+                "content": f"🕐 **{updated_at}** · {trading_icon} {trading_label}",
+            },
+        },
+        {"tag": "hr"},
+    ]
+
+    for label, items, key, fmt in blocks:
+        elements.append(
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": f"**{label}**\n{_feishu_sector_lines(items, value_key=key, value_formatter=fmt)}",
+                },
+            }
+        )
+
+    elements.append({"tag": "hr"})
+    elements.append(
+        {
+            "tag": "note",
+            "elements": [{"tag": "plain_text", "content": "Fund Helper · 板块热力图"}],
+        }
+    )
+
+    return {
+        "config": {"wide_screen_mode": True},
+        "header": {
+            "title": {"tag": "plain_text", "content": "🔥 板块涨跌 Top10"},
+            "subtitle": {"tag": "plain_text", "content": "行业 / 概念 · 涨跌幅排行"},
+            "template": "orange",
+        },
+        "elements": elements,
+    }
+
+
+def build_feishu_sector_flow_card(
+    *,
+    industry_inflow: list[dict],
+    industry_outflow: list[dict],
+    concept_inflow: list[dict],
+    concept_outflow: list[dict],
+    updated_at: str,
+    trading: bool,
+) -> dict[str, Any]:
+    trading_label = "交易时段" if trading else "非交易时段"
+    trading_icon = "🟢" if trading else "🌙"
+
+    def flow_fmt(value: Any) -> str:
+        if isinstance(value, (int, float)):
+            color = "red" if value >= 0 else "green"
+            return f"<font color='{color}'>{value:+.2f}亿</font>"
+        return "—"
+
+    blocks = [
+        ("🏭 行业 · 净流入", industry_inflow, "net_flow", flow_fmt),
+        ("🏭 行业 · 净流出", industry_outflow, "net_flow", flow_fmt),
+        ("💡 概念 · 净流入", concept_inflow, "net_flow", flow_fmt),
+        ("💡 概念 · 净流出", concept_outflow, "net_flow", flow_fmt),
+    ]
+
+    elements: list[dict[str, Any]] = [
+        {
+            "tag": "div",
+            "text": {
+                "tag": "lark_md",
+                "content": f"🕐 **{updated_at}** · {trading_icon} {trading_label}",
+            },
+        },
+        {"tag": "hr"},
+    ]
+
+    for label, items, key, fmt in blocks:
+        elements.append(
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": f"**{label}**\n{_feishu_sector_lines(items, value_key=key, value_formatter=fmt)}",
+                },
+            }
+        )
+
+    elements.append({"tag": "hr"})
+    elements.append(
+        {
+            "tag": "note",
+            "elements": [{"tag": "plain_text", "content": "Fund Helper · 板块资金"}],
+        }
+    )
+
+    return {
+        "config": {"wide_screen_mode": True},
+        "header": {
+            "title": {"tag": "plain_text", "content": "💰 板块资金 Top10"},
+            "subtitle": {"tag": "plain_text", "content": "行业 / 概念 · 主力净流入"},
+            "template": "purple",
+        },
+        "elements": elements,
+    }

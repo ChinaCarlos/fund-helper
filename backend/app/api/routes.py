@@ -501,8 +501,11 @@ async def notify_push(
     if config is None:
         return PushResponse(status="skipped", message="未配置通知，请先在设置中保存", results=[])
 
-    snapshot = await _fetch_snapshot(request, user)
-    return await push_portfolio_notification(config, snapshot)
+    return await push_portfolio_notification(
+        config,
+        user=user,
+        poller=_poller(request),
+    )
 
 
 @router.get("/market/rank/options", response_model=FundRankOptionsResponse)

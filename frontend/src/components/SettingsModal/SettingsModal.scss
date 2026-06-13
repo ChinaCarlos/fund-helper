@@ -355,5 +355,56 @@
   .trigger-control {
     flex: 1;
     max-width: 280px;
+
+    &--wide {
+      max-width: none;
+    }
+  }
+
+  .trigger-row--stack {
+    flex-direction: column;
+    gap: 12px;
+
+    .trigger-label {
+      flex: none;
+      width: 100%;
+    }
+
+    .trigger-control {
+      width: 100%;
+    }
+  }
+
+  .notify-content-types {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px 16px;
+    width: 100%;
+  }
+
+  .notify-content-type-item {
+    .ant-checkbox-wrapper {
+      align-items: center;
+      width: 100%;
+    }
+  }
+
+  .notify-content-type-label {
+    margin-right: 6px;
+  }
+
+  .notify-content-type-tip {
+    color: #94a3b8;
+    font-size: 13px;
+    cursor: help;
+
+    &:hover {
+      color: #64748b;
+    }
+  }
+
+  .notify-content-type-badge {
+    margin-left: 8px;
+    font-size: 12px;
   }
 }

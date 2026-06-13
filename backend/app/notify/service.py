@@ -30,25 +30,13 @@ from app.notify.delivery import (
     resolve_feishu_app_deliveries,
     resolve_wecom_app_deliveries,
 )
+from app.notify.content_fetcher import NotificationSection, gather_notification_sections
 from app.notify.template import (
     build_connectivity_test_card,
     build_connectivity_test_message,
     build_feishu_im_payload,
-    build_feishu_interactive_card,
     build_feishu_webhook_payload,
-    build_portfolio_notification,
 )
-
-def _feishu_card_for(
-    snapshot: dict | None,
-    *,
-    is_test: bool,
-) -> dict[str, Any]:
-    if is_test:
-        return build_connectivity_test_card(snapshot)
-    if snapshot:
-        return build_feishu_interactive_card(snapshot)
-    return build_connectivity_test_card(None)
 
 CHANNEL_LABELS: dict[NotifyChannel, str] = {
     "dingtalk": "钉钉",
@@ -219,27 +207,112 @@ async def _post_json(
         return False, f"网络请求失败：{exc}", None
 
 
-def _build_channel_content(
+def _build_test_sections(snapshot: dict | None) -> list[NotificationSection]:
+    if snapshot:
+        text = build_connectivity_test_message(snapshot)
+        card = build_connectivity_test_card(snapshot)
+    else:
+        text = "【Fund Helper·连通性测试】\n你好，这是 fund-helper system message test"
+        card = build_connectivity_test_card(None)
+    return [
+        NotificationSection(
+            content_type="portfolio",
+            title="连通性测试",
+            text=text,
+            feishu_card=card,
+        )
+    ]
+
+
+async def _dispatch_channel_message(
     channel: NotifyChannel,
-    snapshot: dict | None,
+    cfg: DingTalkChannel | FeishuChannel | WecomChannel,
+    client: httpx.AsyncClient,
+    text: str,
+    feishu_card: dict[str, Any] | None,
+) -> list[tuple[str, bool, str]]:
+    results: list[tuple[str, bool, str]] = []
+    if channel in ("dingtalk", "feishu"):
+        typed = cfg  # type: ignore
+        if typed.webhook.enabled:
+            if channel == "dingtalk":
+                ok, msg = await _send_dingtalk_webhook(client, typed.webhook, text)
+            elif feishu_card:
+                ok, msg = await _send_feishu_webhook_card(client, typed.webhook, feishu_card)
+            else:
+                ok, msg = False, "无法构建飞书消息卡片"
+            results.append(("群机器人", ok, msg))
+        if typed.app.enabled:
+            if channel == "dingtalk":
+                ok, msg = await _test_dingtalk_app(client, typed)
+            elif feishu_card:
+                ok, msg = await _send_feishu_app(client, typed, feishu_card)
+            else:
+                ok, msg = False, "无法构建飞书消息卡片"
+            results.append(("应用", ok, msg))
+    else:
+        wecom = cfg  # type: ignore[assignment]
+        if wecom.webhook.enabled:
+            ok, msg = await _send_wecom_webhook(
+                client,
+                _trim(wecom.webhook.webhookKey),
+                text,
+            )
+            results.append(("群机器人", ok, msg))
+        if wecom.app.enabled:
+            ok, msg = await _send_wecom_app(client, wecom, text)
+            results.append(("应用", ok, msg))
+    return results
+
+
+async def _send_channel_sections(
+    channel: NotifyChannel,
+    cfg: DingTalkChannel | FeishuChannel | WecomChannel,
+    sections: list[NotificationSection],
     *,
     is_test: bool = False,
-) -> tuple[str, dict[str, Any] | None]:
-    if snapshot:
-        text = (
-            build_connectivity_test_message(snapshot)
-            if is_test
-            else build_portfolio_notification(snapshot)
-        )
-        return text, _feishu_card_for(snapshot, is_test=is_test)
+) -> list[tuple[str, bool, str]]:
+    if is_test:
+        section = sections[0]
+        async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, follow_redirects=True) as client:
+            return await _dispatch_channel_message(
+                channel,
+                cfg,
+                client,
+                section.text,
+                section.feishu_card,
+            )
 
-    fallback = (
-        "【Fund Helper·连通性测试】\n你好，这是 fund-helper system message test"
-        if is_test
-        else "【Fund Helper】暂无持仓数据"
-    )
-    feishu_card = _feishu_card_for(None, is_test=is_test) if is_test else None
-    return fallback, feishu_card
+    if not sections:
+        return [("推送", False, "没有可推送的内容")]
+
+    mode_results: dict[str, list[tuple[bool, str]]] = {}
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, follow_redirects=True) as client:
+        for section in sections:
+            batch = await _dispatch_channel_message(
+                channel,
+                cfg,
+                client,
+                section.text,
+                section.feishu_card,
+            )
+            for mode, ok, msg in batch:
+                detail = f"{section.title}：{msg}" if len(sections) > 1 else msg
+                mode_results.setdefault(mode, []).append((ok, detail))
+
+    results: list[tuple[str, bool, str]] = []
+    for mode, entries in mode_results.items():
+        failures = [detail for ok, detail in entries if not ok]
+        successes = [detail for ok, detail in entries if ok]
+        if failures and successes:
+            results.append(
+                (mode, True, f"部分成功（{len(successes)}/{len(entries)}）：" + "；".join(failures))
+            )
+        elif failures:
+            results.append((mode, False, "；".join(failures)))
+        else:
+            results.append((mode, True, f"已发送 {len(successes)} 条消息"))
+    return results
 
 
 async def _send_dingtalk_webhook(
@@ -465,51 +538,6 @@ def _is_channel_active(cfg: DingTalkChannel | FeishuChannel | WecomChannel) -> b
     return bool(cfg.webhook.enabled) or bool(cfg.app.enabled)
 
 
-async def _send_channel_message(
-    channel: NotifyChannel,
-    cfg: DingTalkChannel | FeishuChannel | WecomChannel,
-    snapshot: dict | None,
-    *,
-    is_test: bool = False,
-) -> list[tuple[str, bool, str]]:
-    results: list[tuple[str, bool, str]] = []
-    text, feishu_card = _build_channel_content(channel, snapshot, is_test=is_test)
-
-    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, follow_redirects=True) as client:
-        if channel in ("dingtalk", "feishu"):
-            typed = cfg  # type: ignore
-            if typed.webhook.enabled:
-                if channel == "dingtalk":
-                    ok, msg = await _send_dingtalk_webhook(client, typed.webhook, text)
-                elif feishu_card:
-                    ok, msg = await _send_feishu_webhook_card(client, typed.webhook, feishu_card)
-                else:
-                    ok, msg = False, "无法构建飞书消息卡片"
-                results.append(("群机器人", ok, msg))
-            if typed.app.enabled:
-                if channel == "dingtalk":
-                    ok, msg = await _test_dingtalk_app(client, typed)
-                elif feishu_card:
-                    ok, msg = await _send_feishu_app(client, typed, feishu_card)
-                else:
-                    ok, msg = False, "无法构建飞书消息卡片"
-                results.append(("应用", ok, msg))
-        else:
-            wecom = cfg  # type: ignore[assignment]
-            if wecom.webhook.enabled:
-                ok, msg = await _send_wecom_webhook(
-                    client,
-                    _trim(wecom.webhook.webhookKey),
-                    text,
-                )
-                results.append(("群机器人", ok, msg))
-            if wecom.app.enabled:
-                ok, msg = await _send_wecom_app(client, wecom, text)
-                results.append(("应用", ok, msg))
-
-    return results
-
-
 async def _test_channel_modes(
     channel: NotifyChannel,
     cfg: DingTalkChannel | FeishuChannel | WecomChannel,
@@ -518,10 +546,10 @@ async def _test_channel_modes(
     details: list[str] = []
     failures: list[str] = []
 
-    for mode, ok, msg in await _send_channel_message(
+    for mode, ok, msg in await _send_channel_sections(
         channel,
         cfg,
-        snapshot,
+        _build_test_sections(snapshot),
         is_test=True,
     ):
         line = f"{mode}：{msg}"
@@ -574,11 +602,24 @@ def _should_push_now(config: NotificationConfig, *, trading: bool) -> str | None
 
 async def push_portfolio_notification(
     config: NotificationConfig,
-    snapshot: dict,
+    *,
+    user,
+    poller,
 ) -> PushResponse:
-    skip_reason = _should_push_now(config, trading=bool(snapshot.get("trading")))
+    from app.services.poller import is_trading_hours
+
+    trading = is_trading_hours()
+    skip_reason = _should_push_now(config, trading=trading)
     if skip_reason:
         return PushResponse(status="skipped", message=skip_reason, results=[])
+
+    sections = await gather_notification_sections(
+        config.trigger.contentTypes,
+        user=user,
+        poller=poller,
+    )
+    if not sections:
+        return PushResponse(status="skipped", message="没有可推送的内容（请检查消息类型或养基宝绑定）", results=[])
 
     channels: list[NotifyChannel] = ["dingtalk", "feishu", "wecom"]
     results: list[PushChannelResult] = []
@@ -607,7 +648,7 @@ async def push_portfolio_notification(
             continue
 
         try:
-            mode_results = await _send_channel_message(channel, cfg, snapshot)
+            mode_results = await _send_channel_sections(channel, cfg, sections)
         except Exception as exc:
             results.append(
                 PushChannelResult(channel=channel, status="error", message=str(exc))

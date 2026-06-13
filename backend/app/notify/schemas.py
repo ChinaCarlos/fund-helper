@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.notify.content_types import DEFAULT_CONTENT_TYPES, normalize_content_types
 
 NotifyChannel = Literal["dingtalk", "feishu", "wecom"]
 ConnectivityStatus = Literal["success", "error"]
@@ -74,9 +76,30 @@ class NotificationChannels(BaseModel):
     wecom: WecomChannel = Field(default_factory=WecomChannel)
 
 
+NotifyContentType = Literal[
+    "portfolio",
+    "fund_gain_top20",
+    "fund_loss_top20",
+    "fund_est_gain_top20",
+    "fund_est_loss_top20",
+    "sector_change_top10",
+    "sector_flow_top10",
+]
+
+
 class TriggerConfig(BaseModel):
     frequency: str = "manual"
     tradingHoursOnly: bool = True
+    contentTypes: list[NotifyContentType] = Field(default_factory=lambda: list(DEFAULT_CONTENT_TYPES))
+
+    @field_validator("contentTypes", mode="before")
+    @classmethod
+    def _normalize_content_types(cls, value: object) -> list[str]:
+        if value is None:
+            return list(DEFAULT_CONTENT_TYPES)
+        if isinstance(value, list):
+            return normalize_content_types([str(item) for item in value])
+        return list(DEFAULT_CONTENT_TYPES)
 
 
 class NotificationConfig(BaseModel):

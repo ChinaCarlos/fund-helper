@@ -4,15 +4,17 @@ import {
   Alert,
   App,
   Button,
+  Checkbox,
   Flex,
   Form,
   Input,
   Modal,
   Select,
   Switch,
+  Tooltip,
   Typography,
 } from 'antd';
-import { ApiOutlined, LinkOutlined } from '@ant-design/icons';
+import { ApiOutlined, LinkOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd/es/form';
 import type { NotificationConfig, NotifyChannel } from '@/utils/notificationSettings';
 import {
@@ -20,6 +22,7 @@ import {
   isChannelActive,
   isChannelConfigured,
   mergeNotificationConfig,
+  NOTIFY_CONTENT_TYPE_OPTIONS,
   NOTIFY_FREQUENCY_OPTIONS,
   sanitizeNotificationConfig,
   validateNotificationSettings,
@@ -853,7 +856,13 @@ function ChannelPanel({
   );
 }
 
-function TriggerPanel({ masterEnabled }: { masterEnabled: boolean }) {
+function TriggerPanel({
+  masterEnabled,
+  yjbBound,
+}: {
+  masterEnabled: boolean;
+  yjbBound: boolean;
+}) {
   return (
     <div>
       <header className="channel-header">
@@ -861,8 +870,51 @@ function TriggerPanel({ masterEnabled }: { masterEnabled: boolean }) {
           <span className="channel-icon">触</span>
           <h3 className="channel-title">触发配置</h3>
         </div>
-        <p className="channel-subtitle">控制通知发送的时机与频率，避免非交易时段打扰。</p>
+        <p className="channel-subtitle">控制通知发送的时机、频率与内容类型。</p>
       </header>
+
+      <div className="trigger-row trigger-row--stack">
+        <div className="trigger-label">
+          <p className="field-label">消息类型</p>
+          <p className="field-hint">可多选；勾选后保存至服务端，推送时按类型分别发送</p>
+        </div>
+        <div className="trigger-control trigger-control--wide">
+          <Form.Item
+            name={['trigger', 'contentTypes']}
+            style={{ marginBottom: 0 }}
+            rules={[
+              {
+                validator: async (_, value) => {
+                  if (!masterEnabled) return;
+                  if (Array.isArray(value) && value.length > 0) return;
+                  throw new Error('请至少选择一种消息类型');
+                },
+              },
+            ]}
+          >
+            <Checkbox.Group disabled={!masterEnabled} className="notify-content-types">
+              {NOTIFY_CONTENT_TYPE_OPTIONS.map((option) => {
+                const disabledOption = Boolean(option.requiresYjb && !yjbBound);
+                return (
+                  <div key={option.value} className="notify-content-type-item">
+                    <Checkbox value={option.value} disabled={disabledOption}>
+                      <span className="notify-content-type-label">{option.label}</span>
+                      <Tooltip title={option.description}>
+                        <QuestionCircleOutlined className="notify-content-type-tip" />
+                      </Tooltip>
+                      {disabledOption ? (
+                        <Text type="secondary" className="notify-content-type-badge">
+                          需绑定养基宝
+                        </Text>
+                      ) : null}
+                    </Checkbox>
+                  </div>
+                );
+              })}
+            </Checkbox.Group>
+          </Form.Item>
+        </div>
+      </div>
 
       <div className="trigger-row">
         <div className="trigger-label">
@@ -901,7 +953,7 @@ function TriggerPanel({ masterEnabled }: { masterEnabled: boolean }) {
         showIcon
         style={{ marginTop: 16 }}
         message="推送说明"
-        description="选手动模式时，仅在点击刷新后推送；选择定时频率（含每 1 分钟）后，Dashboard 打开期间将按间隔自动推送。钉钉 / 企业微信暂仅支持群机器人 Webhook；飞书支持 Webhook 与应用模式。"
+        description="可多选消息类型，飞书以精美卡片分条推送；钉钉 / 企业微信暂为文本格式。选手动模式时仅在点击刷新后推送；定时频率在 Dashboard 打开期间按间隔自动推送。"
       />
     </div>
   );
@@ -911,9 +963,22 @@ export function NotificationSettingsPanel({ onSaved }: NotificationSettingsPanel
   const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const [saving, setSaving] = useState(false);
+  const [yjbBound, setYjbBound] = useState(false);
   const [activePanel, setActivePanel] = useState<PanelKey>('trigger');
   const [connectivityMap, setConnectivityMap] = useState(createInitialConnectivityMap);
   const masterEnabled = Form.useWatch('enabled', form);
+
+  useEffect(() => {
+    let cancelled = false;
+    void api.getAuthStatus().then((status) => {
+      if (!cancelled) {
+        setYjbBound(Boolean(status.yjb_bound));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1036,7 +1101,7 @@ export function NotificationSettingsPanel({ onSaved }: NotificationSettingsPanel
             <div
               className={`settings-panel-section${activePanel === 'trigger' ? ' active' : ''}`}
             >
-              <TriggerPanel masterEnabled={Boolean(masterEnabled)} />
+              <TriggerPanel masterEnabled={Boolean(masterEnabled)} yjbBound={yjbBound} />
             </div>
             {NOTIFY_CHANNELS.map((channel) => (
               <div

@@ -55,9 +55,75 @@ export function getNotifyIntervalMs(frequency: NotifyFrequency): number | null {
 
 export const NOTIFICATION_CONFIG_CHANGED_EVENT = 'fund-helper-notification-config-changed';
 
+export type NotifyContentType =
+  | 'portfolio'
+  | 'fund_gain_top20'
+  | 'fund_loss_top20'
+  | 'fund_est_gain_top20'
+  | 'fund_est_loss_top20'
+  | 'sector_change_top10'
+  | 'sector_flow_top10';
+
+export const ALL_NOTIFY_CONTENT_TYPES: NotifyContentType[] = [
+  'portfolio',
+  'fund_gain_top20',
+  'fund_loss_top20',
+  'fund_est_gain_top20',
+  'fund_est_loss_top20',
+  'sector_change_top10',
+  'sector_flow_top10',
+];
+
+export const DEFAULT_NOTIFY_CONTENT_TYPES: NotifyContentType[] = ['portfolio'];
+
+export const NOTIFY_CONTENT_TYPE_OPTIONS: {
+  value: NotifyContentType;
+  label: string;
+  description: string;
+  requiresYjb?: boolean;
+}[] = [
+  {
+    value: 'portfolio',
+    label: '持仓盈亏',
+    description: '推送当前持仓总资产、当日收益、涨跌分布及分组明细（需绑定养基宝）',
+    requiresYjb: true,
+  },
+  {
+    value: 'fund_gain_top20',
+    label: '涨幅榜 Top20',
+    description: '全市场开放式基金当日公布涨幅前 20 名',
+  },
+  {
+    value: 'fund_loss_top20',
+    label: '跌幅榜 Top20',
+    description: '全市场开放式基金当日公布跌幅前 20 名',
+  },
+  {
+    value: 'fund_est_gain_top20',
+    label: '预估涨幅 Top20',
+    description: '交易时段盘中实时估算涨幅前 20 名（含估值净值）',
+  },
+  {
+    value: 'fund_est_loss_top20',
+    label: '预估跌幅 Top20',
+    description: '交易时段盘中实时估算跌幅前 20 名（含估值净值）',
+  },
+  {
+    value: 'sector_change_top10',
+    label: '板块涨跌 Top10',
+    description: '行业与概念板块当日涨幅前 10、跌幅前 10',
+  },
+  {
+    value: 'sector_flow_top10',
+    label: '板块资金 Top10',
+    description: '行业与概念板块当日主力净流入前 10、净流出前 10',
+  },
+];
+
 export interface TriggerConfig {
   frequency: NotifyFrequency;
   tradingHoursOnly: boolean;
+  contentTypes: NotifyContentType[];
 }
 
 /** 钉钉 / 飞书群机器人 */
@@ -222,6 +288,7 @@ export function createDefaultNotificationConfig(): NotificationConfig {
     trigger: {
       frequency: 'manual',
       tradingHoursOnly: true,
+      contentTypes: [...DEFAULT_NOTIFY_CONTENT_TYPES],
     },
     channels: {
       dingtalk: { webhook: emptyWebhook(), app: emptyDingTalkApp() },
@@ -318,6 +385,23 @@ function mergeWecomApp(
   };
 }
 
+function normalizeContentTypes(raw: unknown): NotifyContentType[] {
+  if (!Array.isArray(raw)) return [...DEFAULT_NOTIFY_CONTENT_TYPES];
+  const seen = new Set<NotifyContentType>();
+  const result: NotifyContentType[] = [];
+  for (const item of raw) {
+    if (
+      typeof item === 'string' &&
+      ALL_NOTIFY_CONTENT_TYPES.includes(item as NotifyContentType) &&
+      !seen.has(item as NotifyContentType)
+    ) {
+      seen.add(item as NotifyContentType);
+      result.push(item as NotifyContentType);
+    }
+  }
+  return result.length > 0 ? result : [...DEFAULT_NOTIFY_CONTENT_TYPES];
+}
+
 /** 将表单局部快照与默认值合并，避免 useWatch 缺字段导致读取报错 */
 export function mergeNotificationConfig(partial: unknown): NotificationConfig {
   const base = createDefaultNotificationConfig();
@@ -339,6 +423,7 @@ export function mergeNotificationConfig(partial: unknown): NotificationConfig {
         input.trigger?.tradingHoursOnly !== undefined
           ? input.trigger.tradingHoursOnly !== false
           : base.trigger.tradingHoursOnly,
+      contentTypes: normalizeContentTypes(input.trigger?.contentTypes),
     },
     channels: {
       dingtalk: {
@@ -394,6 +479,7 @@ function parseTrigger(raw: unknown): TriggerConfig {
   return {
     frequency,
     tradingHoursOnly: item.tradingHoursOnly !== false,
+    contentTypes: normalizeContentTypes(item.contentTypes),
   };
 }
 
@@ -560,6 +646,10 @@ function validateWebhook(
 export function validateNotificationSettings(config: NotificationConfig): string | null {
   const merged = mergeNotificationConfig(config);
   if (!merged.enabled) return null;
+
+  if (!merged.trigger.contentTypes.length) {
+    return '请至少选择一种消息类型';
+  }
 
   const channelKeys: NotifyChannel[] = ['dingtalk', 'feishu', 'wecom'];
   if (!channelKeys.some((key) => isChannelActive(key, merged))) {
