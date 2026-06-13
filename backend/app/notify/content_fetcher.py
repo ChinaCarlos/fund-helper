@@ -47,6 +47,7 @@ async def _fetch_fund_rank_section(
     *,
     dimension: str,
     order: str,
+    sign_filter: str,
     title: str,
     header_template: str,
 ) -> NotificationSection:
@@ -56,6 +57,7 @@ async def _fetch_fund_rank_section(
         page=1,
         page_size=20,
         order=order,
+        sign_filter=sign_filter,  # type: ignore[arg-type]
     )
     items = _top_items(result.items, limit=20)
     rate_key = "estimate_rate" if dimension == "estimate_rate" else "day"
@@ -87,15 +89,10 @@ async def _fetch_sector_change_section() -> NotificationSection:
 
     def split_top10(items: list[Any]) -> tuple[list[dict], list[dict]]:
         rows = [_item_dict(item) for item in items]
-        gain = sorted(
-            rows,
-            key=lambda row: row.get("change_rate") if row.get("change_rate") is not None else float("-inf"),
-            reverse=True,
-        )[:10]
-        loss = sorted(
-            rows,
-            key=lambda row: row.get("change_rate") if row.get("change_rate") is not None else float("inf"),
-        )[:10]
+        gain_rows = [row for row in rows if (row.get("change_rate") or 0) > 0]
+        loss_rows = [row for row in rows if (row.get("change_rate") or 0) < 0]
+        gain = sorted(gain_rows, key=lambda row: row["change_rate"], reverse=True)[:10]
+        loss = sorted(loss_rows, key=lambda row: row["change_rate"])[:10]
         return gain, loss
 
     ind_gain, ind_loss = split_top10(industry.items)
@@ -135,15 +132,10 @@ async def _fetch_sector_flow_section() -> NotificationSection:
 
     def split_flow(items: list[Any]) -> tuple[list[dict], list[dict]]:
         rows = [_item_dict(item) for item in items]
-        inflow = sorted(
-            rows,
-            key=lambda row: row.get("net_flow") if row.get("net_flow") is not None else float("-inf"),
-            reverse=True,
-        )[:10]
-        outflow = sorted(
-            rows,
-            key=lambda row: row.get("net_flow") if row.get("net_flow") is not None else float("inf"),
-        )[:10]
+        inflow_rows = [row for row in rows if (row.get("net_flow") or 0) > 0]
+        outflow_rows = [row for row in rows if (row.get("net_flow") or 0) < 0]
+        inflow = sorted(inflow_rows, key=lambda row: row["net_flow"], reverse=True)[:10]
+        outflow = sorted(outflow_rows, key=lambda row: row["net_flow"])[:10]
         return inflow, outflow
 
     ind_in, ind_out = split_flow(industry.items)
@@ -248,6 +240,7 @@ async def gather_notification_sections(
                 "fund_gain_top20",
                 dimension="day",
                 order="desc",
+                sign_filter="positive",
                 title=CONTENT_TYPE_LABELS["fund_gain_top20"],
                 header_template="red",
             )
@@ -258,6 +251,7 @@ async def gather_notification_sections(
                 "fund_loss_top20",
                 dimension="day",
                 order="asc",
+                sign_filter="negative",
                 title=CONTENT_TYPE_LABELS["fund_loss_top20"],
                 header_template="green",
             )
@@ -268,6 +262,7 @@ async def gather_notification_sections(
                 "fund_est_gain_top20",
                 dimension="estimate_rate",
                 order="desc",
+                sign_filter="positive",
                 title=CONTENT_TYPE_LABELS["fund_est_gain_top20"],
                 header_template="red",
             )
@@ -278,6 +273,7 @@ async def gather_notification_sections(
                 "fund_est_loss_top20",
                 dimension="estimate_rate",
                 order="asc",
+                sign_filter="negative",
                 title=CONTENT_TYPE_LABELS["fund_est_loss_top20"],
                 header_template="green",
             )

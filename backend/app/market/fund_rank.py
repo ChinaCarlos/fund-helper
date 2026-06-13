@@ -5,7 +5,7 @@ import math
 import re
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 import akshare as ak
 import pandas as pd
@@ -365,6 +365,22 @@ def _merge_estimate(df: pd.DataFrame, estimate_map: dict[str, dict[str, Any]]) -
     return working.apply(apply_estimate, axis=1)
 
 
+RankSignFilter = Literal["any", "negative", "positive"]
+
+
+def _apply_sign_filter(
+    df: pd.DataFrame,
+    *,
+    dimension: RankDimension,
+    sign_filter: RankSignFilter,
+) -> pd.DataFrame:
+    if df.empty or sign_filter == "any":
+        return df
+    if sign_filter == "negative":
+        return df[df[dimension] < 0]
+    return df[df[dimension] > 0]
+
+
 def _apply_filters(
     df: pd.DataFrame,
     *,
@@ -455,6 +471,7 @@ async def get_fund_rank(
     page: int = 1,
     page_size: int = 20,
     order: str = "desc",
+    sign_filter: RankSignFilter = "any",
 ) -> FundRankResponse:
     if fund_type not in OPEN_FUND_TYPES:
         fund_type = "全部"
@@ -489,6 +506,7 @@ async def get_fund_rank(
         type_map=type_map,
         search=search,
     )
+    filtered = _apply_sign_filter(filtered, dimension=dimension, sign_filter=sign_filter)
     items = _paginate_items(
         filtered,
         dimension=dimension,
