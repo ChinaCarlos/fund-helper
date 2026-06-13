@@ -1,4 +1,20 @@
 import type {
+  CurveOverlaysResponse,
+  FundCurveIndicator,
+  FundCurveOptionsResponse,
+  FundCurvePeriod,
+  FundCurveResponse,
+  FundRankOptionsResponse,
+  FundRankQuery,
+  FundRankResponse,
+  FundFlowIndicator,
+  HeatmapBoardType,
+  HeatmapKind,
+  HeatmapOptionsResponse,
+  HeatmapResponse,
+  SectorFundsResponse,
+} from '@/types/market';
+import type {
   AccountListResponse,
   AddFundItemPayload,
   AuthStatus,
@@ -127,4 +143,69 @@ export const api = {
     }>('/api/notify/push', {
       method: 'POST',
     }),
+  getMarketRankOptions: () =>
+    request<FundRankOptionsResponse>('/api/market/rank/options'),
+  getMarketRank: (query: FundRankQuery = {}) => {
+    const params = new URLSearchParams();
+    if (query.dimension) params.set('dimension', query.dimension);
+    if (query.scope) params.set('scope', query.scope);
+    if (query.fund_type) params.set('fund_type', query.fund_type);
+    if (query.board) params.set('board', query.board);
+    if (query.sector) params.set('sector', query.sector);
+    if (query.search) params.set('search', query.search);
+    if (query.page != null) params.set('page', String(query.page));
+    if (query.page_size != null) params.set('page_size', String(query.page_size));
+    if (query.order) params.set('order', query.order);
+    return request<FundRankResponse>(`/api/market/rank?${params}`);
+  },
+  getHeatmapOptions: () =>
+    request<HeatmapOptionsResponse>('/api/market/heatmap/options'),
+  getHeatmap: (query: {
+    kind?: HeatmapKind;
+    board_type?: HeatmapBoardType;
+    indicator?: FundFlowIndicator;
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (query.kind) params.set('kind', query.kind);
+    if (query.board_type) params.set('board_type', query.board_type);
+    if (query.indicator) params.set('indicator', query.indicator);
+    return request<HeatmapResponse>(`/api/market/heatmap?${params}`);
+  },
+  getFundCurveOptions: (code: string) =>
+    request<FundCurveOptionsResponse>(`/api/market/fund/${code}/curve/options`),
+  getFundCurve: (
+    code: string,
+    query: {
+      indicator?: FundCurveIndicator;
+      period?: FundCurvePeriod;
+      name?: string;
+    } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (query.indicator) params.set('indicator', query.indicator);
+    if (query.period) params.set('period', query.period);
+    if (query.name) params.set('name', query.name);
+    return request<FundCurveResponse>(`/api/market/fund/${code}/curve?${params}`);
+  },
+  getSectorFunds: (query: {
+    sector: string;
+    board_type?: HeatmapBoardType;
+    limit?: number;
+  }) => {
+    const params = new URLSearchParams({ sector: query.sector });
+    if (query.board_type) params.set('board_type', query.board_type);
+    if (query.limit != null) params.set('limit', String(query.limit));
+    return request<SectorFundsResponse>(`/api/market/sector/funds?${params}`);
+  },
+  getCurveOverlays: (query: {
+    period?: FundCurvePeriod;
+    sector_name?: string;
+    board_type?: HeatmapBoardType;
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (query.period) params.set('period', query.period);
+    if (query.sector_name) params.set('sector_name', query.sector_name);
+    if (query.board_type) params.set('board_type', query.board_type);
+    return request<CurveOverlaysResponse>(`/api/market/curve/overlays?${params}`);
+  },
 };

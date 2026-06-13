@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  AppstoreOutlined,
   LogoutOutlined,
   ReloadOutlined,
   SettingOutlined,
+  TrophyOutlined,
 } from "@ant-design/icons";
 import {
   Alert,
@@ -180,6 +182,12 @@ export function Dashboard() {
             </div>
           </Flex>
           <Flex align="center" gap={12} style={{ flexShrink: 0 }}>
+            <Button icon={<TrophyOutlined />} onClick={() => navigate("/market")}>
+              市场排行
+            </Button>
+            <Button icon={<AppstoreOutlined />} onClick={() => navigate("/market/heatmap")}>
+              板块热力图
+            </Button>
             <Button
               icon={<SettingOutlined />}
               onClick={() => setSettingsOpen(true)}

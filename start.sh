@@ -35,7 +35,9 @@ start_backend() {
     uv pip install -r requirements.txt
   fi
   echo "==> 启动后端 http://localhost:8000"
-  uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+  # 后端拉东财数据需直连，避免 Cursor/Clash 注入的 HTTP 代理导致 ProxyError
+  env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+    uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 }
 
 ensure_pnpm() {

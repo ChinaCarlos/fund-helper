@@ -5,6 +5,8 @@ import zhCN from 'antd/locale/zh_CN';
 import { api } from '@/api/client';
 import { Dashboard } from '@/pages/Dashboard/Dashboard';
 import { Login } from '@/pages/Login/Login';
+import { MarketHeatmap } from '@/pages/MarketHeatmap/MarketHeatmap';
+import { MarketRanking } from '@/pages/MarketRanking/MarketRanking';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
@@ -51,6 +53,22 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/market/heatmap"
+              element={
+                <ProtectedRoute>
+                  <MarketHeatmap />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/market"
+              element={
+                <ProtectedRoute>
+                  <MarketRanking />
                 </ProtectedRoute>
               }
             />

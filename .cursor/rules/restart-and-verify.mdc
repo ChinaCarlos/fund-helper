@@ -1,0 +1,38 @@
+---
+description: 代码改动后自动重启本地服务并验证是否生效
+alwaysApply: true
+---
+
+# 改完即重启并验证
+
+完成会影响运行行为的代码改动后（后端、前端、依赖、配置），在本轮回复内**必须**执行：
+
+## 1. 重启服务
+
+```bash
+lsof -ti:8000,3000 2>/dev/null | xargs kill -9 2>/dev/null || true; sleep 2
+cd /Users/carlos/Downloads/yjb-realtime/backend && uv pip install -r requirements.txt -q
+cd /Users/carlos/Downloads/yjb-realtime && ./start.sh
+```
+
+- 在后台启动 `./start.sh`，等待后端与前端就绪（约 5–10 秒）
+- 若沙箱拦截外网或杀进程失败，使用 `required_permissions: ["all"]`
+
+## 2. 验证清单
+
+按本次改动范围选择验证项，并在回复中简要汇报结果：
+
+| 检查项 | 命令/方式 |
+|--------|-----------|
+| 后端健康 | `curl -s http://localhost:8000/api/health` → `{"status":"ok"}` |
+| 登录态 | `curl -s http://localhost:8000/api/auth/status` |
+| 持仓 API | 已登录时 `GET /api/portfolio` 返回 200 |
+| 市场排行 | 已登录时 `GET /api/market/rank/options` 与 `GET /api/market/rank?dimension=day&limit=3` 返回 200 |
+| 通知相关 | 改动 notify 时测试 `GET /api/notify/config` 或连通性 |
+| 前端页面 | `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` → 200；涉及新路由时确认页面可访问 |
+
+## 3. 汇报格式
+
+在任务完成总结末尾增加 **「服务验证」** 小节：重启是否成功、各项检查结果、若失败则说明原因与已做修复。
+
+仅文档/注释改动、无运行时影响时，可跳过重启。
