@@ -1,0 +1,101 @@
+name: VS Code Extension Release
+
+on:
+  push:
+    tags:
+      - 'vscode-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Extension version (e.g. 0.1.0)'
+        required: true
+        default: '0.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode-extension
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#vscode-v}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=vscode-v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Building VS Code extension v${VERSION}"
+
+      - name: Sync version in package.json
+        shell: bash
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: vscode-extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Package VSIX
+        run: npx --yes @vscode/vsce@latest package --out "../fund-helper-vscode-${{ steps.ver.outputs.version }}.vsix"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-vsix
+          path: fund-helper-vscode-*.vsix
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Fund Helper VS Code v${{ steps.ver.outputs.version }}
+          body: |
+            ## Fund Helper VS Code / Cursor 扩展 v${{ steps.ver.outputs.version }}
+
+            ### 安装
+
+            **方式 A — 从 VSIX 安装（无需 Marketplace）**
+            1. 下载下方 `fund-helper-vscode-${{ steps.ver.outputs.version }}.vsix`
+            2. VS Code / Cursor → `Cmd+Shift+P` → **Extensions: Install from VSIX…**
+
+            **方式 B — VS Code Marketplace**（若已上架）
+            扩展市场搜索 **Fund Helper**
+
+            ### 入口
+            - 活动栏柱状图图标 → 侧边栏持仓
+            - 状态栏左下角 Fund Helper
+            - 底部 Panel → Fund Helper Tab
+
+            文档: [vscode-extension/README.md](https://github.com/${{ github.repository }}/blob/main/vscode-extension/README.md)
+          files: fund-helper-vscode-*.vsix
+          draft: false
+          prerelease: false

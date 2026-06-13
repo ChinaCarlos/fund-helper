@@ -2,15 +2,16 @@
 
 基于养基宝 `browser-plug-api` 的基金收益实时监控面板（项目名：`fund-helper`）。
 
-提供两种使用方式：
+提供四种使用方式：
 
 | 方式 | 说明 |
 |------|------|
 | **Web 应用** | 完整功能：持仓、市场排行、板块热力图、通知推送、多用户管理 |
 | **浏览器插件** | 轻量 Popup：微信扫码登录养基宝，工具栏一键查看持仓与当日收益（无需后端） |
+| **VS Code 扩展** | 侧边栏 / 面板 / 状态栏：与浏览器插件相同的持仓视图，适配编辑器主题色 |
 | **桌面端** | Tauri + Rust：单用户本地 SQLite，扫码登录；持仓、收益曲线、飞书/钉钉/企微通知推送、系统托盘 |
 
-详见 [chrome-extension/README.md](./chrome-extension/README.md) 与 [desktop/README.md](./desktop/README.md)。
+详见 [chrome-extension/README.md](./chrome-extension/README.md)、[vscode-extension/README.md](./vscode-extension/README.md) 与 [desktop/README.md](./desktop/README.md)。
 
 ## 桌面端下载
 
@@ -49,6 +50,7 @@ chmod +x publish-desktop.sh
 | 后端 | Python 3.12 · FastAPI · httpx |
 | 前端 | React 19 · TypeScript · Rsbuild · Ant Design · pnpm（`web/`） |
 | 浏览器插件 | CRXJS · Vite · React 19 · TypeScript · Manifest V3 |
+| VS Code 扩展 | Extension Host · WebviewView · React 19 · Vite（`vscode-extension/`） |
 | 桌面端 | Tauri v2 · Rust · React 19 · Tailwind v4（`desktop/`） |
 | 部署 | Docker · docker compose |
 
@@ -233,6 +235,27 @@ chmod +x dev-infra.sh start.sh
 
 安装与开发见 [chrome-extension/README.md](./chrome-extension/README.md)。
 
+### VS Code / Cursor 扩展（`vscode-extension/`）
+
+- 在 **VS Code**、**Cursor**、**Trae**、**CodeBuddy**、**Qoder** 等编辑器内查看养基宝持仓，UI 与浏览器插件对齐
+- 四个入口：活动栏图标、状态栏、底部 Panel Tab、编辑器标题栏（见 [入口示意图](./vscode-extension/docs/entry-points.png)）
+- 微信扫码登录；登录态保存在扩展 `globalState`
+- 样式适配编辑器明暗主题（`--vscode-charts-red/green` 等）
+- 直连养基宝 API（经 Extension Host 代理），**不依赖** fund-helper 后端与 MongoDB
+
+**安装：**
+
+| 编辑器 | 方式 | 链接 |
+|--------|------|------|
+| **VS Code** | 扩展商店 | [Marketplace · Fund Helper](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) |
+| **Cursor / Trae / CodeBuddy / Qoder** | VSIX 文件 | [下载 VSIX](https://github.com/ChinaCarlos/fund-helper/raw/main/assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix) |
+
+VSIX 仓库路径：[`assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix`](./assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix)
+
+非 VS Code 编辑器：`Cmd+Shift+P` → **Extensions: Install from VSIX…** → 选择下载的 `.vsix` → 重载窗口。
+
+详见 [vscode-extension/README.md](./vscode-extension/README.md)；架构见 [TECH.md §19](./TECH.md#19-vs-code-扩展架构)。
+
 ### 桌面端（`desktop/`）
 
 - **macOS / Windows** 原生客户端（Tauri v2 + Rust），无需部署后端
@@ -257,9 +280,11 @@ fund-helper/
 ├── backend/
 ├── web/                    # Web 应用（React SPA）
 ├── chrome-extension/       # 浏览器插件（CRXJS + React Popup）
+├── vscode-extension/       # VS Code / Cursor 扩展（Webview + Extension Host）
 ├── desktop/                # 桌面端（Tauri + Rust）
 ├── assets/releases/        # 桌面端安装包（本地构建输出，见 README）
 ├── publish-desktop.sh      # 桌面端发包脚本
+├── publish-vscode.sh       # VS Code 扩展发版脚本
 ├── publish-image.sh        # Docker 镜像发布脚本
 ├── TECH.md
 └── API_README.md           # 养基宝上游 API

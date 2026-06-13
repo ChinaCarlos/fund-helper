@@ -9,6 +9,8 @@ desktop/src-tauri/target/
 assets/releases/**/*
 !assets/releases/README.md
 !assets/releases/.gitkeep
+!assets/releases/vscode/
+!assets/releases/vscode/**/*
 .DS_Store
 *.pyc
 .env

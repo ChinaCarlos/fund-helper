@@ -1,0 +1,16 @@
+{
+  "version": "0.1.0",
+  "tag": "vscode-v0.1.0",
+  "repo": "ChinaCarlos/fund-helper",
+  "artifacts": {
+    "vsix": "fund-helper-vscode-0.1.0.vsix"
+  },
+  "downloadPath": "assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix",
+  "downloadRaw": "https://github.com/ChinaCarlos/fund-helper/raw/main/assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix",
+  "downloadRelease": "https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.0/fund-helper-vscode-0.1.0.vsix",
+  "marketplace": "https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode",
+  "publisher": "fund-helper-org",
+  "extensionId": "fund-helper-org.fund-helper-vscode",
+  "installVsixEditors": "Cursor, Trae, CodeBuddy, Qoder",
+  "install": "VS Code → Marketplace；其他 IDE → Install from VSIX"
+}

@@ -147,4 +147,5 @@ Popup 打开
 
 - [crxjs/chrome-extension-tools](https://github.com/crxjs/chrome-extension-tools)
 - [TECH.md §17](../TECH.md#17-浏览器插件架构) — 架构与主项目关系
+- [vscode-extension/README.md](../vscode-extension/README.md) — VS Code / Cursor 扩展（同源 UI）
 - [API_README.md](../API_README.md) — 养基宝上游 API

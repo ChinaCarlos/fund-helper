@@ -49,3 +49,35 @@ CI 完成后：
 ```
 
 保存到 `assets/releases/v0.1.0/`（该目录在 `.gitignore` 中，不提交 Git）。
+
+---
+
+## VS Code 扩展（vscode-v*）
+
+### 安装
+
+| 编辑器 | 方式 | 地址 |
+|--------|------|------|
+| **VS Code** | [Marketplace](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) | 搜索 **Fund Helper** |
+| **Cursor / Trae / CodeBuddy / Qoder** | VSIX | https://github.com/ChinaCarlos/fund-helper/raw/main/assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix |
+
+仓库内 VSIX：[`vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix`](./vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix)
+
+非 VS Code：`Cmd+Shift+P` → **Extensions: Install from VSIX…**
+
+安装说明：[vscode-extension/README.md](../vscode-extension/README.md#安装)
+
+### 维护者：更新仓库内 VSIX
+
+```bash
+./publish-vscode.sh 0.1.0 --local
+git add assets/releases/vscode/v0.1.0/
+git commit -m "chore(vscode): bundle v0.1.0 vsix"
+```
+
+### 触发 CI / Marketplace
+
+```bash
+./publish-vscode.sh 0.1.0 --release
+export VSCE_PAT=xxx && ./publish-vscode.sh 0.1.0 --marketplace
+```
