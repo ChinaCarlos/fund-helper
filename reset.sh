@@ -24,8 +24,8 @@ rm -rf "$ROOT/backend/.venv"
 find "$ROOT/backend" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
 echo "==> 清除前端依赖与构建产物..."
-rm -rf "$ROOT/frontend/node_modules" "$ROOT/frontend/dist"
-rm -f "$ROOT/frontend/package-lock.json"
+rm -rf "$ROOT/web/node_modules" "$ROOT/web/dist"
+rm -f "$ROOT/web/package-lock.json"
 
 echo ""
 echo "✅ 清理完成。请执行全新安装："

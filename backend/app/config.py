@@ -21,10 +21,10 @@ class Settings(BaseSettings):
     ]
     # OAuth 回调基址（需在飞书/钉钉应用后台配置相同重定向 URL）
     public_base_url: str = "http://localhost:8000"
-    frontend_base_url: str = "http://localhost:3000"
-    # Docker 生产模式：由后端托管前端静态资源
+    web_base_url: str = "http://localhost:3000"
+    # Docker 生产模式：由后端托管 Web 静态资源
     serve_static: bool = False
-    static_dir: Path = _PROJECT_ROOT / "frontend" / "dist"
+    static_dir: Path = _PROJECT_ROOT / "web" / "dist"
 
     yjb_base_url: str = "http://browser-plug-api.yangjibao.com"
     yjb_api_secret: str = "YxmKSrQR4uoJ5lOoWIhcbd7SlUEh9OOc"

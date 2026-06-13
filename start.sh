@@ -120,28 +120,28 @@ ensure_pnpm() {
   fi
 }
 
-start_frontend() {
+start_web() {
   ensure_pnpm
-  cd "$ROOT/frontend"
+  cd "$ROOT/web"
   if [ ! -d node_modules ]; then
-    echo "==> 安装前端依赖 (pnpm)..."
+    echo "==> 安装 Web 依赖 (pnpm)..."
     pnpm install
   fi
-  echo "==> 启动前端 http://localhost:3000"
+  echo "==> 启动 Web http://localhost:3000"
   pnpm dev
 }
 
 case "${1:-all}" in
   backend) start_backend ;;
-  frontend) start_frontend ;;
+  web) start_web ;;
   *)
-    echo "启动后端 (8000) 和前端 (3000)..."
+    echo "启动后端 (8000) 和 Web (3000)..."
     echo "提示：修改代码后请先 Ctrl+C 停止，再重新执行 ./start.sh"
     echo ""
     start_backend &
     BACK_PID=$!
     trap 'kill $BACK_PID 2>/dev/null' EXIT
     sleep 2
-    start_frontend
+    start_web
     ;;
 esac

@@ -53,7 +53,7 @@ app.include_router(api_router)
 app.include_router(admin_router)
 
 
-def _mount_frontend(app: FastAPI) -> None:
+def _mount_web(app: FastAPI) -> None:
     if not settings.serve_static:
         return
 
@@ -81,4 +81,4 @@ def _mount_frontend(app: FastAPI) -> None:
         raise HTTPException(status_code=404)
 
 
-_mount_frontend(app)
+_mount_web(app)

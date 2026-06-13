@@ -16,7 +16,7 @@
 | 层级 | 技术 |
 |------|------|
 | 后端 | Python 3.12 · FastAPI · httpx |
-| 前端 | React 19 · TypeScript · Rsbuild · Ant Design · pnpm |
+| 前端 | React 19 · TypeScript · Rsbuild · Ant Design · pnpm（`web/`） |
 | 浏览器插件 | CRXJS · Vite · React 19 · TypeScript · Manifest V3 |
 | 部署 | Docker · docker compose |
 
@@ -135,7 +135,7 @@ chmod +x dev-infra.sh start.sh
 ```
 
 - 后端：http://localhost:8000
-- 前端：http://localhost:3000
+- 前端：http://localhost:3000（`web/`）
 - 数据库：容器 `fund-helper-mongo-dev`，卷 `mongo_dev_data`
 
 本地环境变量示例见 [backend/.env.example](./backend/.env.example)（复制为 `backend/.env` 可选）。
@@ -158,7 +158,7 @@ chmod +x dev-infra.sh start.sh
 | 修改位置 | 是否需要重启 |
 |----------|--------------|
 | `backend/` | 是 |
-| `frontend/src/` | 是 |
+| `web/src/` | 是 |
 | 仅文档 | 否 |
 
 ---
@@ -213,7 +213,7 @@ fund-helper/
 ├── reset.sh
 ├── start.sh
 ├── backend/
-├── frontend/
+├── web/                    # Web 应用（React SPA）
 ├── chrome-extension/       # 浏览器插件（CRXJS + React Popup）
 ├── TECH.md
 └── API_README.md           # 养基宝上游 API

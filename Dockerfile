@@ -1,13 +1,13 @@
-FROM node:22-alpine AS frontend-build
+FROM node:22-alpine AS web-build
 
-WORKDIR /app/frontend
+WORKDIR /app/web
 
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY web/package.json web/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
-COPY frontend/ ./
+COPY web/ ./
 RUN pnpm build
 
 
@@ -21,7 +21,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/backend \
-    STATIC_DIR=/app/frontend/dist \
+    STATIC_DIR=/app/web/dist \
     SERVE_STATIC=true \
     API_PORT=8080 \
     MONGODB_URI=mongodb://mongo:27017 \
@@ -42,7 +42,7 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
 COPY backend/ /app/backend/
-COPY --from=frontend-build /app/frontend/dist /app/frontend/dist
+COPY --from=web-build /app/web/dist /app/web/dist
 
 EXPOSE 8080
 

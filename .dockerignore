@@ -5,8 +5,8 @@
 **/*.pyc
 **/.venv
 backend/.venv
-frontend/node_modules
-frontend/dist
+web/node_modules
+web/dist
 .env
 .env.*
 !.env.docker.example
