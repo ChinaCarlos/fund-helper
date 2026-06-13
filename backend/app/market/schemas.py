@@ -75,6 +75,7 @@ class FundRankResponse(BaseModel):
     fund_type: str = ""
     board: str = ""
     sector: str = ""
+    search: str = ""
     trading: bool = False
     total: int
     page: int
@@ -89,3 +90,92 @@ class FundRankOptionsResponse(BaseModel):
     index_boards: list[str]
     sectors: list[str]
     available_fields: list[FundFieldMeta] = Field(default_factory=list)
+
+
+HeatmapKind = Literal["sector_change", "fund_flow"]
+HeatmapBoardType = Literal["industry", "concept"]
+FundFlowIndicator = Literal["今日", "5日", "10日"]
+FundCurveIndicator = Literal["累计收益率走势", "单位净值走势"]
+FundCurvePeriod = Literal["1月", "3月", "6月", "1年", "3年", "5年", "今年来", "成立来"]
+FundCurveKind = Literal["open", "etf", "lof"]
+
+
+class HeatmapItem(BaseModel):
+    name: str
+    code: str = ""
+    change_rate: float | None = None
+    net_flow: float | None = None
+    net_flow_ratio: float | None = None
+    leading_stock: str = ""
+    leading_stock_change: float | None = None
+    up_count: int | None = None
+    down_count: int | None = None
+
+
+class HeatmapResponse(BaseModel):
+    kind: HeatmapKind
+    board_type: HeatmapBoardType
+    indicator: str = ""
+    trading: bool = False
+    updated_at: str
+    items: list[HeatmapItem] = Field(default_factory=list)
+
+
+class HeatmapOptionsResponse(BaseModel):
+    kinds: list[dict[str, str]]
+    board_types: list[dict[str, str]]
+    flow_indicators: list[str]
+    sources: list[dict[str, str]]
+
+
+class FundCurvePoint(BaseModel):
+    date: str
+    value: float | None = None
+    nav: float | None = None
+    change_rate: float | None = None
+
+
+class FundCurveResponse(BaseModel):
+    code: str
+    name: str = ""
+    kind: FundCurveKind = "open"
+    source_api: str = "fund_open_fund_info_em"
+    indicator: FundCurveIndicator
+    period: str
+    points: list[FundCurvePoint] = Field(default_factory=list)
+    updated_at: str = ""
+
+
+class FundCurveOptionsResponse(BaseModel):
+    kind: FundCurveKind = "open"
+    source_api: str = "fund_open_fund_info_em"
+    indicators: list[dict[str, str]]
+    periods: list[str]
+
+
+class SectorFundsResponse(BaseModel):
+    sector: str
+    board_type: HeatmapBoardType = "industry"
+    total: int
+    items: list[FundRankItem] = Field(default_factory=list)
+    trading: bool = False
+    updated_at: str = ""
+
+
+class CurveOverlayPoint(BaseModel):
+    date: str
+    value: float | None = None
+
+
+class CurveOverlaySeries(BaseModel):
+    key: str
+    label: str
+    points: list[CurveOverlayPoint] = Field(default_factory=list)
+
+
+class CurveOverlaysResponse(BaseModel):
+    period: str
+    sector_name: str = ""
+    board_type: str = "industry"
+    series: list[CurveOverlaySeries] = Field(default_factory=list)
+    updated_at: str = ""

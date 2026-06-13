@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
+from app.market import network as _market_network  # noqa: F401  # 配置东财直连，须在 akshare 调用前
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

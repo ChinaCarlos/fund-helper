@@ -12,8 +12,28 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from qrcode.constants import ERROR_CORRECT_H
 
+from app.market.benchmark_curve import get_curve_overlays
+from app.market.fund_curve import get_fund_curve, get_fund_curve_options
 from app.market.fund_rank import get_fund_rank, get_fund_rank_options
-from app.market.schemas import FundRankOptionsResponse, FundRankResponse, RankDimension, RankScope
+from app.market.heatmap import get_heatmap, get_heatmap_options
+from app.market.sector_funds import get_sector_funds
+from app.market.schemas import (
+    CurveOverlaysResponse,
+    FundCurveIndicator,
+    FundCurveOptionsResponse,
+    FundCurvePeriod,
+    FundCurveResponse,
+    FundFlowIndicator,
+    FundRankOptionsResponse,
+    FundRankResponse,
+    HeatmapBoardType,
+    HeatmapKind,
+    HeatmapOptionsResponse,
+    HeatmapResponse,
+    RankDimension,
+    RankScope,
+    SectorFundsResponse,
+)
 from app.notify.delivery_catalog import list_delivery_chats
 from app.notify.feishu_group import create_feishu_notification_group
 from app.notify.schemas import (
@@ -383,6 +403,7 @@ async def market_rank(
     fund_type: str = Query("全部"),
     board: str = Query("全部"),
     sector: str = Query(""),
+    search: str = Query(""),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     order: str = Query("desc", pattern="^(asc|desc)$"),
@@ -396,9 +417,89 @@ async def market_rank(
             fund_type=fund_type,
             board=board,
             sector=sector,
+            search=search,
             page=page,
             page_size=page_size,
             order=order,
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"拉取市场排行失败：{exc}") from exc
+
+
+@router.get("/market/heatmap/options", response_model=HeatmapOptionsResponse)
+async def market_heatmap_options(request: Request) -> HeatmapOptionsResponse:
+    """板块热力图筛选项。"""
+    _require_login(request)
+    return await get_heatmap_options()
+
+
+@router.get("/market/heatmap", response_model=HeatmapResponse)
+async def market_heatmap(
+    request: Request,
+    kind: HeatmapKind = Query("sector_change"),
+    board_type: HeatmapBoardType = Query("industry"),
+    indicator: FundFlowIndicator = Query("今日"),
+) -> HeatmapResponse:
+    """板块涨幅 / 资金流向热力图（东财）。"""
+    _require_login(request)
+    try:
+        return await get_heatmap(kind=kind, board_type=board_type, indicator=indicator)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"拉取板块热力图失败：{exc}") from exc
+
+
+@router.get("/market/fund/{code}/curve/options", response_model=FundCurveOptionsResponse)
+async def market_fund_curve_options(request: Request, code: str) -> FundCurveOptionsResponse:
+    """基金收益曲线筛选项。"""
+    _require_login(request)
+    return await get_fund_curve_options(code)
+
+
+@router.get("/market/fund/{code}/curve", response_model=FundCurveResponse)
+async def market_fund_curve(
+    request: Request,
+    code: str,
+    indicator: FundCurveIndicator = Query("累计收益率走势"),
+    period: FundCurvePeriod = Query("1年"),
+    name: str = Query(""),
+) -> FundCurveResponse:
+    """单只基金收益/净值曲线（东财天天基金）。"""
+    _require_login(request)
+    try:
+        return await get_fund_curve(code, indicator=indicator, period=period, name=name)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"拉取基金曲线失败：{exc}") from exc
+
+
+@router.get("/market/sector/funds", response_model=SectorFundsResponse)
+async def market_sector_funds(
+    request: Request,
+    sector: str = Query(..., min_length=1),
+    board_type: HeatmapBoardType = Query("industry"),
+    limit: int = Query(50, ge=1, le=100),
+) -> SectorFundsResponse:
+    """板块关联基金（按当日涨幅排序）。"""
+    _require_login(request)
+    try:
+        return await get_sector_funds(sector=sector, board_type=board_type, limit=limit)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"拉取板块基金失败：{exc}") from exc
+
+
+@router.get("/market/curve/overlays", response_model=CurveOverlaysResponse)
+async def market_curve_overlays(
+    request: Request,
+    period: FundCurvePeriod = Query("1年"),
+    sector_name: str = Query(""),
+    board_type: HeatmapBoardType = Query("industry"),
+) -> CurveOverlaysResponse:
+    """收益曲线对比叠加：板块、上证指数、创业板指。"""
+    _require_login(request)
+    try:
+        return await get_curve_overlays(
+            period=period,
+            sector_name=sector_name,
+            board_type=board_type,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"拉取对比曲线失败：{exc}") from exc

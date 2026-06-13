@@ -372,6 +372,7 @@ def _apply_filters(
     sector: str,
     fund_type_filter: str,
     type_map: dict[str, str],
+    search: str = "",
 ) -> pd.DataFrame:
     if df.empty:
         return df
@@ -399,6 +400,13 @@ def _apply_filters(
         working = working[
             working["name"].str.contains(pattern, na=False, regex=True)
             | working["sector"].str.contains(pattern, na=False, regex=True)
+        ]
+
+    keyword = search.strip()
+    if keyword:
+        working = working[
+            working["code"].astype(str).str.contains(keyword, case=False, na=False)
+            | working["name"].astype(str).str.contains(keyword, case=False, na=False)
         ]
 
     working = working[working[dimension].notna()]
@@ -443,6 +451,7 @@ async def get_fund_rank(
     fund_type: str = "全部",
     board: str = "全部",
     sector: str = "",
+    search: str = "",
     page: int = 1,
     page_size: int = 20,
     order: str = "desc",
@@ -478,6 +487,7 @@ async def get_fund_rank(
         sector=sector,
         fund_type_filter=fund_type if scope == "open" else "",
         type_map=type_map,
+        search=search,
     )
     items = _paginate_items(
         filtered,
@@ -494,6 +504,7 @@ async def get_fund_rank(
         fund_type=active_fund_type,
         board=active_board,
         sector=sector,
+        search=search.strip(),
         trading=is_trading_hours(),
         total=len(filtered),
         page=page,
