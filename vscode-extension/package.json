@@ -1,0 +1,174 @@
+{
+  "name": "fund-helper-vscode",
+  "displayName": "Fund Helper",
+  "description": "在 VS Code / Cursor 中查看养基宝基金持仓：微信扫码登录，侧边栏展示大盘指数、当日收益与多账户基金列表，涨跌色随编辑器主题切换，无需后端。",
+  "version": "0.1.0",
+  "publisher": "fund-helper-org",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ChinaCarlos/fund-helper.git",
+    "directory": "vscode-extension"
+  },
+  "homepage": "https://github.com/ChinaCarlos/fund-helper#vs-code--cursor-扩展vscode-extension",
+  "bugs": {
+    "url": "https://github.com/ChinaCarlos/fund-helper/issues"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "fund",
+    "portfolio",
+    "yangjibao",
+    "基金"
+  ],
+  "activationEvents": [
+    "onView:fundHelper.sidebarView",
+    "onView:fundHelper.panelView",
+    "onCommand:fundHelper.show",
+    "onCommand:fundHelper.openPanel",
+    "onCommand:fundHelper.focusSidebar",
+    "onCommand:fundHelper.showBottomPanel",
+    "onCommand:fundHelper.refresh"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "fundHelper.show",
+        "title": "Fund Helper",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "fundHelper.openPanel",
+        "title": "Fund Helper: 在编辑器打开持仓",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "fundHelper.focusSidebar",
+        "title": "Fund Helper: 打开侧边栏",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "fundHelper.showBottomPanel",
+        "title": "Fund Helper: 打开底部面板",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "fundHelper.refresh",
+        "title": "Fund Helper: 刷新持仓",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "fund-helper",
+          "title": "Fund Helper",
+          "icon": "media/fund-helper.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "fund-helper-panel",
+          "title": "Fund Helper",
+          "icon": "media/fund-helper.svg"
+        }
+      ]
+    },
+    "views": {
+      "fund-helper": [
+        {
+          "type": "webview",
+          "id": "fundHelper.sidebarView",
+          "name": "持仓",
+          "icon": "media/fund-helper.svg"
+        }
+      ],
+      "fund-helper-panel": [
+        {
+          "type": "webview",
+          "id": "fundHelper.panelView",
+          "name": "持仓",
+          "icon": "media/fund-helper.svg"
+        }
+      ]
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "fundHelper.show",
+          "when": "true"
+        },
+        {
+          "command": "fundHelper.openPanel",
+          "when": "true"
+        },
+        {
+          "command": "fundHelper.focusSidebar",
+          "when": "true"
+        },
+        {
+          "command": "fundHelper.showBottomPanel",
+          "when": "true"
+        },
+        {
+          "command": "fundHelper.refresh",
+          "when": "true"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "fundHelper.show",
+          "group": "navigation@100",
+          "when": "true"
+        }
+      ],
+      "editor/actions/right": [
+        {
+          "command": "fundHelper.show",
+          "group": "navigation@100",
+          "when": "true"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "fundHelper.refresh",
+          "when": "view == fundHelper.sidebarView || view == fundHelper.panelView",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run build:ext && npm run build:webview",
+    "build:ext": "node esbuild.mjs",
+    "build:webview": "vite build -c vite.webview.config.ts",
+    "watch": "node esbuild.mjs --watch",
+    "watch:webview": "vite build -c vite.webview.config.ts --watch",
+    "compile": "npm run build"
+  },
+  "dependencies": {
+    "md5": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/md5": "^2.3.5",
+    "@types/node": "^22.15.3",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@types/vscode": "^1.74.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "esbuild": "^0.25.4",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}
