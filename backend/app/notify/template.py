@@ -81,8 +81,8 @@ def _feishu_header_template(income: float) -> str:
     return "blue"
 
 
-def _feishu_mood_text(income: float, rate: float) -> str:
-    icon = _trend_emoji(income)
+def _feishu_mood_text(income: float, rate: float, *, plain: bool = False) -> str:
+    icon = _trend_emoji(income, markdown=not plain)
     return f"{icon} 当日 {format_signed_amount(income)} · {format_percent(rate)}"
 
 
@@ -237,11 +237,11 @@ def build_feishu_interactive_card(
             "fields": [
                 _feishu_field("💰 总资产", format_money(total_assets)),
                 _feishu_field(
-                    f"{_trend_emoji(today_income)} 当日收益",
+                    f"{_trend_emoji(today_income, markdown=False)} 当日收益",
                     _feishu_colored_amount(today_income),
                 ),
                 _feishu_field(
-                    f"{_trend_emoji(today_rate)} 收益率",
+                    f"{_trend_emoji(today_rate, markdown=False)} 收益率",
                     _feishu_colored_rate(today_rate),
                 ),
                 _feishu_field("涨跌分布", _rise_fall_summary(rise, fall)),
@@ -280,7 +280,7 @@ def build_feishu_interactive_card(
                 )
 
             content = (
-                f"{_trend_emoji(acc_income)} **{acc_title}**  \n"
+                f"{_trend_emoji(acc_income, markdown=False)} **{acc_title}**  \n"
                 f"当日 {_feishu_colored_amount(acc_income)}（{_feishu_colored_rate(acc_rate)}）"
             )
             if fund_lines:
@@ -315,7 +315,7 @@ def build_feishu_interactive_card(
             },
             "subtitle": {
                 "tag": "plain_text",
-                "content": subtitle or _feishu_mood_text(today_income, today_rate),
+                "content": subtitle or _feishu_mood_text(today_income, today_rate, plain=True),
             },
             "template": _feishu_header_template(today_income),
         },

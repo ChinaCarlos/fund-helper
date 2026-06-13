@@ -22,6 +22,7 @@ import { IndexBar } from "@/components/IndexBar/IndexBar";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import { SummaryCard } from "@/components/SummaryCard/SummaryCard";
 import { api } from "@/api/client";
+import { useNotificationSchedule } from "@/hooks/useNotificationSchedule";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { tryPushAfterRefresh } from "@/utils/notificationPush";
 
@@ -39,6 +40,7 @@ export function Dashboard() {
   const { portfolio, loading, refreshing, error, refresh } = usePortfolio({
     onAuthRequired: handleAuthRequired,
   });
+  useNotificationSchedule();
 
   const handleRefresh = useCallback(async () => {
     const snapshot = await refresh();

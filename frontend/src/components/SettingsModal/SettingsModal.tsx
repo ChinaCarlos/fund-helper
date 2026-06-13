@@ -50,6 +50,20 @@ const NAV_ITEMS: { key: PanelKey; label: string }[] = [
   { key: 'wecom', label: '企业微信' },
 ];
 
+/** 应用模式暂未开放的平台（仅保留 Webhook，后期再开发） */
+const DEFERRED_APP_CHANNELS: NotifyChannel[] = ['dingtalk', 'wecom'];
+
+function disableDeferredAppModes(config: NotificationConfig): NotificationConfig {
+  const channels = { ...config.channels };
+  for (const channel of DEFERRED_APP_CHANNELS) {
+    channels[channel] = {
+      ...channels[channel],
+      app: { ...channels[channel].app, enabled: false },
+    };
+  }
+  return { ...config, channels };
+}
+
 const CHANNEL_INFO: Record<
   NotifyChannel,
   {
@@ -64,11 +78,11 @@ const CHANNEL_INFO: Record<
   dingtalk: {
     icon: '钉',
     title: 'DingTalk',
-    subtitle: '群机器人 Webhook 推送，或企业应用凭据 + 投递会话（参考 Hermes HOME_CHANNEL）。',
+    subtitle: '群机器人 Webhook 推送（应用模式后期开发）。',
     guideUrl: 'https://open.dingtalk.com/document/robots/custom-robot-access',
     guideText: '打开钉钉设置指南',
     credentialsDesc:
-      'WorkBuddy 风格：在开放平台创建应用，填写 Client ID/Secret，点「测试连通性」验证。群通知优先用 Webhook；应用模式填写要接收通知的会话 ID（cid 开头）。',
+      '在群聊中添加自定义机器人，复制 Webhook 地址；若启用加签，填写 SEC 密钥后点「测试连通性」验证。',
   },
   feishu: {
     icon: '飞',
@@ -82,11 +96,11 @@ const CHANNEL_INFO: Record<
   wecom: {
     icon: '企',
     title: 'WeCom',
-    subtitle: '群机器人 Webhook 推送，或自建应用凭据 + 投递目标。',
+    subtitle: '群机器人 Webhook 推送（应用模式后期开发）。',
     guideUrl: 'https://developer.work.weixin.qq.com/document/path/91770',
     guideText: '打开企业微信设置指南',
     credentialsDesc:
-      'WorkBuddy 风格：填写 Corp 凭据后测试连通性。群通知优先用 Webhook Key；应用模式填写会话 ID 或成员 User ID。',
+      '在群聊中添加自定义机器人，从 Webhook URL 中复制 key 参数，点「测试连通性」验证。',
   },
 };
 
@@ -648,13 +662,7 @@ function CredentialsHelp({ channel }: { channel: NotifyChannel }) {
   );
 }
 
-function DingTalkFields({
-  disabled,
-  form,
-}: {
-  disabled: boolean;
-  form: FormInstance<FormValues>;
-}) {
+function DingTalkFields({ disabled }: { disabled: boolean }) {
   return (
     <>
       <CredentialsHelp channel="dingtalk" />
@@ -680,40 +688,15 @@ function DingTalkFields({
           disabled={disabled}
         />
       </ConfigSection>
+      {/* 钉钉应用模式后期开发
       <ConfigSection
         title="应用（App）"
         enabledName={['channels', 'dingtalk', 'app', 'enabled']}
         disabled={disabled}
       >
-        <p className="field-group-label">必填</p>
-        <FieldRow
-          name={['channels', 'dingtalk', 'app', 'clientId']}
-          label="Client ID"
-          hint="钉钉应用 AppKey / Client ID"
-          disabled={disabled}
-        />
-        <FieldRow
-          name={['channels', 'dingtalk', 'app', 'clientSecret']}
-          label="Client Secret"
-          hint="钉钉应用 AppSecret / Client Secret"
-          password
-          disabled={disabled}
-        />
-        <DeliveryTargetPanel
-          channel="dingtalk"
-          disabled={disabled}
-          form={form}
-          chatIdsName={['channels', 'dingtalk', 'app', 'receiveChatIds']}
-          userIdName={['channels', 'dingtalk', 'app', 'receiveUserId']}
-        />
-        <p className="field-group-label">推荐</p>
-        <FieldRow
-          name={['channels', 'dingtalk', 'app', 'agentId']}
-          label="Agent ID"
-          hint="发送工作通知时可能需要，连通性测试暂仅校验凭据"
-          disabled={disabled}
-        />
+        ...
       </ConfigSection>
+      */}
     </>
   );
 }
@@ -790,13 +773,7 @@ function FeishuFields({
   );
 }
 
-function WecomFields({
-  disabled,
-  form,
-}: {
-  disabled: boolean;
-  form: FormInstance<FormValues>;
-}) {
+function WecomFields({ disabled }: { disabled: boolean }) {
   return (
     <>
       <CredentialsHelp channel="wecom" />
@@ -821,54 +798,15 @@ function WecomFields({
           disabled={disabled}
         />
       </ConfigSection>
+      {/* 企业微信应用模式后期开发
       <ConfigSection
         title="应用（App）"
         enabledName={['channels', 'wecom', 'app', 'enabled']}
         disabled={disabled}
       >
-        <p className="field-group-label">必填</p>
-        <FieldRow
-          name={['channels', 'wecom', 'app', 'corpId']}
-          label="Corp ID"
-          hint="企业微信企业 ID"
-          disabled={disabled}
-        />
-        <FieldRow
-          name={['channels', 'wecom', 'app', 'corpSecret']}
-          label="Corp Secret"
-          hint="自建应用 Secret"
-          password
-          disabled={disabled}
-        />
-        <FieldRow
-          name={['channels', 'wecom', 'app', 'agentId']}
-          label="Agent ID"
-          hint="自建应用 AgentId"
-          disabled={disabled}
-        />
-        <DeliveryTargetPanel
-          channel="wecom"
-          disabled={disabled}
-          form={form}
-          chatIdsName={['channels', 'wecom', 'app', 'receiveChatIds']}
-          userIdName={['channels', 'wecom', 'app', 'receiveUserId']}
-        />
-        <p className="field-group-label">推荐</p>
-        <FieldRow
-          name={['channels', 'wecom', 'app', 'callbackToken']}
-          label="Callback Token"
-          hint="回调 URL 校验 Token"
-          password
-          disabled={disabled}
-        />
-        <FieldRow
-          name={['channels', 'wecom', 'app', 'callbackAesKey']}
-          label="Callback AES Key"
-          hint="回调消息加解密 EncodingAESKey"
-          password
-          disabled={disabled}
-        />
+        ...
       </ConfigSection>
+      */}
     </>
   );
 }
@@ -902,11 +840,11 @@ function ChannelPanel({
         onTestConnectivity={() => onTestConnectivity(channel)}
       />
       {channel === 'dingtalk' ? (
-        <DingTalkFields disabled={disabled} form={form} />
+        <DingTalkFields disabled={disabled} />
       ) : channel === 'feishu' ? (
         <FeishuFields disabled={disabled} form={form} />
       ) : (
-        <WecomFields disabled={disabled} form={form} />
+        <WecomFields disabled={disabled} />
       )}
     </div>
   );
@@ -960,7 +898,7 @@ function TriggerPanel({ masterEnabled }: { masterEnabled: boolean }) {
         showIcon
         style={{ marginTop: 16 }}
         message="推送说明"
-        description="手动刷新后推送持仓收益。群通知优先用 Webhook；应用模式填写投递会话 ID（Hermes HOME_CHANNEL 思路）。凭据填好后用「测试连通性」验证，类似 WorkBuddy 注册流程。"
+        description="选手动模式时，仅在点击刷新后推送；选择定时频率（含每 1 分钟）后，Dashboard 打开期间将按间隔自动推送。钉钉 / 企业微信暂仅支持群机器人 Webhook；飞书支持 Webhook 与应用模式。"
       />
     </div>
   );
@@ -983,13 +921,15 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       try {
         const remote = await api.getNotificationConfig();
         if (!cancelled) {
-          const merged = remote.config
-            ? mergeNotificationConfig({ ...local, ...remote.config })
-            : local;
+          const merged = disableDeferredAppModes(
+            remote.config
+              ? mergeNotificationConfig({ ...local, ...remote.config })
+              : local,
+          );
           form.setFieldsValue(merged);
         }
       } catch {
-        if (!cancelled) form.setFieldsValue(local);
+        if (!cancelled) form.setFieldsValue(disableDeferredAppModes(local));
       }
       if (!cancelled) {
         setActivePanel('trigger');
@@ -1015,7 +955,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
         },
       }));
 
-      const config = mergeNotificationConfig(form.getFieldsValue(true));
+      const config = disableDeferredAppModes(mergeNotificationConfig(form.getFieldsValue(true)));
       const result = await runChannelConnectivityTest(channel, config);
 
       setConnectivityMap((prev) => ({
@@ -1036,7 +976,9 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   );
 
   const handleSave = async () => {
-    const settings = sanitizeNotificationConfig(form.getFieldsValue(true));
+    const settings = disableDeferredAppModes(
+      sanitizeNotificationConfig(form.getFieldsValue(true)),
+    );
     const err = validateNotificationSettings(settings);
     if (err) {
       message.warning(err);
@@ -1083,7 +1025,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             <Text strong>启用消息通知</Text>
             <div>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                支持钉钉、飞书、企业微信的群机器人与应用两种接入方式
+                支持钉钉、飞书、企业微信群机器人；飞书另支持应用模式
               </Text>
             </div>
           </div>

@@ -24,6 +24,7 @@ export type IntegrationKind = 'webhook' | 'app';
 
 export type NotifyFrequency =
   | 'manual'
+  | '1m'
   | '5m'
   | '15m'
   | '30m'
@@ -32,12 +33,28 @@ export type NotifyFrequency =
 
 export const NOTIFY_FREQUENCY_OPTIONS: { value: NotifyFrequency; label: string }[] = [
   { value: 'manual', label: '仅手动刷新后' },
+  { value: '1m', label: '每 1 分钟' },
   { value: '5m', label: '每 5 分钟' },
   { value: '15m', label: '每 15 分钟' },
   { value: '30m', label: '每 30 分钟' },
   { value: '60m', label: '每 60 分钟' },
   { value: 'daily_close', label: '每日收盘汇总' },
 ];
+
+const NOTIFY_FREQUENCY_INTERVAL_MS: Partial<Record<NotifyFrequency, number>> = {
+  '1m': 60_000,
+  '5m': 300_000,
+  '15m': 900_000,
+  '30m': 1_800_000,
+  '60m': 3_600_000,
+};
+
+/** 定时推送间隔（毫秒）；manual / daily_close 返回 null */
+export function getNotifyIntervalMs(frequency: NotifyFrequency): number | null {
+  return NOTIFY_FREQUENCY_INTERVAL_MS[frequency] ?? null;
+}
+
+export const NOTIFICATION_CONFIG_CHANGED_EVENT = 'yjb-notification-config-changed';
 
 export interface TriggerConfig {
   frequency: NotifyFrequency;
@@ -492,6 +509,7 @@ export function loadNotificationSettings(): NotificationConfig {
 export function saveNotificationSettings(config: NotificationConfig) {
   const payload = sanitizeNotificationConfig(config);
   localStorage.setItem(NOTIFICATION_CONFIG_STORAGE_KEY, JSON.stringify(payload));
+  window.dispatchEvent(new Event(NOTIFICATION_CONFIG_CHANGED_EVENT));
 }
 
 export function getChannel(
