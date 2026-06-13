@@ -25,10 +25,8 @@ jobs:
         include:
           - platform: macos-latest
             os_name: macos
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           - platform: windows-latest
             os_name: windows
-            rust_targets: ''
 
     runs-on: ${{ matrix.platform }}
     defaults:
@@ -81,8 +79,10 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.rust_targets }}
+
+      - name: Add macOS Rust targets (Universal binary)
+        if: matrix.os_name == 'macos'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
