@@ -2,12 +2,22 @@
 
 基于养基宝 `browser-plug-api` 的基金收益实时监控面板（项目名：`fund-helper`）。
 
+提供两种使用方式：
+
+| 方式 | 说明 |
+|------|------|
+| **Web 应用** | 完整功能：持仓、市场排行、板块热力图、通知推送、多用户管理 |
+| **浏览器插件** | 轻量 Popup：微信扫码登录养基宝，工具栏一键查看持仓与当日收益（无需后端） |
+
+详见 [chrome-extension/README.md](./chrome-extension/README.md)。
+
 ## 技术栈
 
 | 层级 | 技术 |
 |------|------|
 | 后端 | Python 3.12 · FastAPI · httpx |
 | 前端 | React 19 · TypeScript · Rsbuild · Ant Design · pnpm |
+| 浏览器插件 | CRXJS · Vite · React 19 · TypeScript · Manifest V3 |
 | 部署 | Docker · docker compose |
 
 ## 环境要求
@@ -181,6 +191,16 @@ chmod +x dev-infra.sh start.sh
 - 本地开发：前后端分离（`:8000` + `:3000`）
 - Docker：单容器 `:8080`，API 与页面同域
 
+### 浏览器插件（`chrome-extension/`）
+
+- **Chrome / Edge / 360 极速（Chromium 内核）**：加载 `dist/` 即可使用
+- 微信扫码登录养基宝，登录态保存在 `chrome.storage.local`
+- 四大指数、总资产、当日收益、涨跌分布、多账户 Tab
+- 基金列表排序：当日涨幅（交易时段为预估涨幅）/ 当日收益 / 持仓余额，支持正序与倒序
+- 直连养基宝 API，**不依赖** fund-helper 后端与 MongoDB
+
+安装与开发见 [chrome-extension/README.md](./chrome-extension/README.md)。
+
 ---
 
 ## 目录结构
@@ -194,8 +214,9 @@ fund-helper/
 ├── start.sh
 ├── backend/
 ├── frontend/
+├── chrome-extension/       # 浏览器插件（CRXJS + React Popup）
 ├── TECH.md
-└── API_README.md      # 养基宝上游 API
+└── API_README.md           # 养基宝上游 API
 ```
 
 ---
@@ -272,3 +293,10 @@ fund-helper/
 docker compose --profile dev --profile full down -v
 docker compose --profile full up -d --build
 ```
+
+### 浏览器插件无法加载或接口失败
+
+- 确认使用 **Chrome / Edge / 360 极速（Chromium 内核）** 加载 `chrome-extension/dist/`
+- 开发模式：`cd chrome-extension && pnpm install && pnpm dev`，在扩展管理页选择 `dist/` 目录
+- 插件直连养基宝，与 Web 应用后端无关；401 时重新扫码登录即可
+- Firefox 暂未专门适配，见 [chrome-extension/README.md](./chrome-extension/README.md#浏览器兼容性)

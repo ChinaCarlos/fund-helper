@@ -23,6 +23,7 @@
 14. [部署与启动](#14-部署与启动)
 15. [错误处理与边界情况](#15-错误处理与边界情况)
 16. [设计决策与已知限制](#16-设计决策与已知限制)
+17. [浏览器插件架构](#17-浏览器插件架构)
 
 ---
 
@@ -30,10 +31,12 @@
 
 ### 1.1 定位
 
-本项目是一个 **BFF（Backend For Frontend）+ 实时监控面板**：
+本项目提供 **Web 应用** 与 **浏览器插件** 两种客户端：
 
-- **后端**：代理养基宝 browser-plug-api，统一管理 Token、MD5 签名、数据归一化；扩展 AKShare/东财市场数据；支持钉钉/飞书/企业微信通知推送；Docker 模式下托管前端静态资源。
-- **前端**：React 单页应用，通过 REST 按需拉取持仓快照，提供市场排行、板块热力图、通知设置等页面。
+- **Web 应用（BFF + 面板）**：FastAPI 代理养基宝 API，统一管理 Token、MD5 签名、数据归一化；扩展 AKShare/东财市场数据；支持钉钉/飞书/企业微信通知推送；Docker 模式下托管前端静态资源。
+- **浏览器插件（独立 Popup）**：CRXJS + React 直连养基宝，本地保存登录态，工具栏一键查看持仓；不依赖 fund-helper 后端与 MongoDB。
+
+Web 前端：React 单页应用，通过 REST 按需拉取持仓快照，提供市场排行、板块热力图、通知设置等页面。
 
 ### 1.2 核心能力
 
@@ -48,6 +51,7 @@
 | 通知推送 | 钉钉 / 飞书 / 企业微信，Webhook 或企业应用，定时或刷新后推送持仓收益 |
 | 微信扫码登录 | 后端生成高清二维码，Token 持久化 |
 | Docker 部署 | 单容器提供 API + 静态前端，数据卷持久化登录态与通知配置 |
+| 浏览器插件 | Chrome Popup 直连养基宝，持仓查看、多账户 Tab、基金排序（见 §17） |
 
 ### 1.3 服务端口
 
@@ -76,6 +80,7 @@
 | 路由 | react-router-dom | 7.x |
 | 样式 | Sass + 内联 style | 无 CSS Modules |
 | 代码规范 | Biome | lint + format |
+| 浏览器插件 | CRXJS + Vite + React 19 | Manifest V3 Popup，见 `chrome-extension/` |
 
 ---
 
@@ -163,6 +168,44 @@ Dashboard
         └── FundTable        → 删除持仓、列配置
 ```
 
+### 3.5 浏览器插件架构（独立客户端）
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              Chrome / Edge Popup（400×600，MV3）                 │
+│  React App（chrome-extension/src）                               │
+│  ┌─────────────┐  ┌──────────────────────────────────────────┐  │
+│  │ LoginView   │  │ PortfolioView                            │  │
+│  │ QR 轮询登录  │  │ 指数 / 汇总 / Tab / 基金列表 / 排序       │  │
+│  └──────┬──────┘  └──────────────────┬───────────────────────┘  │
+│         │                            │                          │
+│         └────────────┬───────────────┘                          │
+│                      ▼                                          │
+│              ┌──────────────┐    ┌─────────────────┐            │
+│              │  yjb.ts      │    │ chrome.storage  │            │
+│              │  portfolio.ts│    │ .local (Session)│            │
+│              │  fundSort.ts │    └─────────────────┘            │
+│              └──────┬───────┘                                   │
+└─────────────────────┼───────────────────────────────────────────┘
+                      │ HTTPS（浏览器 fetch，无 BFF）
+                      ▼
+            ┌───────────────────────┐
+            │ 养基宝 browser-plug-api │
+            └───────────────────────┘
+```
+
+**与 Web 应用的关系**：
+
+| 维度 | Web 应用 | 浏览器插件 |
+|------|----------|------------|
+| 数据路径 | 浏览器 → FastAPI → 养基宝 | 浏览器 → 养基宝 |
+| 登录 | 账号密码 + 养基宝绑定 | 独立微信扫码 |
+| 会话存储 | MongoDB + Cookie | `chrome.storage.local` |
+| 签名实现 | `backend/app/yjb/client.py` | `chrome-extension/src/lib/yjb.ts` |
+| 快照聚合 | `calculator.py` | `portfolio.ts`（逻辑对齐） |
+
+插件**不包含**市场排行、热力图、通知推送、收益曲线、基金增删等多用户 Web 能力。
+
 ---
 
 ## 4. 目录结构
@@ -211,7 +254,7 @@ fund-helper/
 │           ├── auth_store.py
 │           └── calculator.py
 │
-└── frontend/
+├── frontend/
     ├── rsbuild.config.ts   # 构建 + dev 代理
     ├── package.json
     └── src/
@@ -253,6 +296,18 @@ fund-helper/
             ├── notificationSettings.ts
             ├── notificationPush.ts
             └── notificationConnectivity.ts
+
+└── chrome-extension/           # 浏览器插件（见 §17）
+    ├── manifest.config.ts      # MV3 清单
+    ├── vite.config.ts
+    ├── index.html
+    ├── public/icons/
+    └── src/
+        ├── App.tsx
+        ├── components/         # LoginView / PortfolioView
+        ├── lib/                # yjb / portfolio / fundSort / storage
+        ├── types/
+        └── styles/popup.css
 ```
 
 ---
@@ -1469,14 +1524,132 @@ pnpm build          # 产物在 frontend/dist/
 5. **基金添加份额**：需用户手动填写，无自动同步券商持仓。
 6. **市场数据依赖第三方**：AKShare/东财接口可能变更或限流。
 7. **下午开盘时间**：本项目用 13:30，与 API 文档部分描述 13:00 略有差异。
+8. **浏览器插件**：Popup 高度上限 600px（Chrome 限制）；API Secret 内置于插件，不适合作为公开分发产品；Firefox 未适配。
 
 ### 16.3 相关文档
 
 | 文档 | 内容 |
 |------|------|
 | [README.md](./README.md) | 快速入门、API 速查 |
+| [chrome-extension/README.md](./chrome-extension/README.md) | 浏览器插件安装、开发与功能说明 |
 | [API_README.md](./API_README.md) | 养基宝上游 API 完整逆向文档 |
 
 ---
 
-*文档版本：2026-06-13 · 与项目代码同步*
+## 17. 浏览器插件架构
+
+> 用户文档见 [chrome-extension/README.md](./chrome-extension/README.md)。本节描述与主项目的技术关系与实现细节。
+
+### 17.1 定位
+
+`chrome-extension/` 是 fund-helper 的**轻量独立客户端**：在浏览器工具栏提供 Popup，快速查看养基宝持仓，无需部署后端或 MongoDB。
+
+### 17.2 技术栈
+
+| 项 | 选型 |
+|----|------|
+| 构建 | Vite 6 + [@crxjs/vite-plugin](https://crxjs.dev/) |
+| 框架 | React 19 + TypeScript |
+| 清单 | Manifest V3 |
+| 存储 | `chrome.storage.local` |
+| QR 码 | `qrcode`（Canvas 渲染） |
+| 签名 | `md5` npm 包 |
+
+### 17.3 应用阶段（`App.tsx`）
+
+```
+boot → loadSession()
+  ├─ 无 Token → login（LoginView）
+  └─ 有 Token → fetchPortfolioSnapshot() → portfolio（PortfolioView）
+       └─ 401 → clearSession → login
+```
+
+全局 `loading` 时显示半透明遮罩；刷新持仓复用 `loadPortfolio()`。
+
+### 17.4 核心模块
+
+| 模块 | 文件 | 职责 |
+|------|------|------|
+| 养基宝客户端 | `lib/yjb.ts` | `fetch` 封装、MD5 签名、`YjbApiError`；对齐 `YjbClient` |
+| 持仓聚合 | `lib/portfolio.ts` | `fetchPortfolioSnapshot`、`buildPortfolioSnapshot`、`isTradingHours`；对齐 `calculator.py` |
+| 基金排序 | `lib/fundSort.ts` | `day_rate` / `day_earn` / `hold_sum`，正序/倒序 |
+| 本地会话 | `lib/storage.ts` | `loadSession` / `saveSession` / `clearSession` |
+| QR 状态 | `lib/qr-state.ts` | `state` 数字/字符串归一化，过期与成功判断 |
+| 格式化 | `lib/format.ts` | `formatMoney`、`formatPercent`、`colorClass` |
+
+### 17.5 登录与 QR 轮询（`LoginView.tsx`）
+
+1. `yjb.createQr()` → 获取 QR URL，Canvas 绘制
+2. 每 2s `yjb.getQrState(id)` 轮询
+3. `isQrLoginSuccess(state)`：`String(state) === '2'` 且存在 `token`
+4. 成功后 `saveSession({ token, nickname, avatar, login_time })` → `onLoggedIn`
+5. 4 分钟超时或 `state=3` 显示过期，可刷新二维码
+
+> 不使用 React `StrictMode`，避免开发环境双次挂载导致重复创建 QR。
+
+### 17.6 持仓界面（`PortfolioView.tsx`）
+
+| 区域 | 数据源 |
+|------|--------|
+| 用户信息 | `YjbSession` + `snapshot.updated_at` / `snapshot.trading` |
+| 指数条 | `snapshot.indices`（上证、沪深300、深证成指、创业板指） |
+| 汇总卡片 | `total_assets`、`today_income`、`rise_count` / `fall_count` |
+| 账户 Tab | `snapshot.accounts` |
+| 基金列表 | 当前 Tab 下 `funds`，经 `fundSort` 排序后渲染 |
+
+**排序行为**：
+
+- 选项：当日涨幅（交易时段标签为「预估涨幅」）、当日收益、持仓余额
+- 默认：交易时段 → `day_rate` 倒序；非交易时段 → `day_earn` 倒序
+- 再次点击当前排序项切换正序 ↑ / 倒序 ↓
+
+**交易时段展示**：
+
+- `isTradingHours()`：工作日 9:30–11:30、13:30–15:00
+- 交易时段基金行显示「预估」+ `gszzl`；非交易时段显示 `day_rate`（公布涨幅）
+
+### 17.7 Manifest 与权限
+
+```typescript
+// manifest.config.ts（摘要）
+permissions: ['storage']
+host_permissions: ['http://browser-plug-api.yangjibao.com/*']
+action: { default_popup: 'index.html' }
+```
+
+### 17.8 Popup 布局约束（`styles/popup.css`）
+
+| 约束 | 值 | 说明 |
+|------|-----|------|
+| 宽度 | 400px | `--w` |
+| 高度 | 600px | `--popup-h`，Chrome Popup 硬上限 |
+| 滚动 | 仅 `.view` | `html/body` 固定高度 + `overflow: hidden`，避免双层滚动 |
+| 底部留白 | `.view::after` | 防止最后一条基金被裁切 |
+
+### 17.9 开发与构建
+
+```bash
+cd chrome-extension
+pnpm install
+pnpm dev      # HMR → dist/
+pnpm build    # tsc + vite build
+```
+
+Chrome → `chrome://extensions` → 开发者模式 → 加载 `dist/`。
+
+### 17.10 与 Web 应用代码对照
+
+| 逻辑 | Web 后端/前端 | 浏览器插件 |
+|------|---------------|------------|
+| MD5 签名 | `yjb/client.py` | `lib/yjb.ts` |
+| 当日收益估算 | `calculator.calc_fund_day_earn` | `portfolio.calcFundDayEarn` |
+| 指数 dir 归一化 | `calculator.normalize_index_dir` | `portfolio.normalizeIndexDir` |
+| 交易时段 | `calculator.is_trading_hours` | `portfolio.isTradingHours` |
+| 表格排序 | `fundTableColumns.ts` | `fundSort.ts` |
+| 涨跌幅颜色 | `utils/format.ts` | `lib/format.ts` |
+
+插件与 Web **不共享 npm workspace**，类型与算法通过复制对齐，修改时需两边同步关键逻辑。
+
+---
+
+*文档版本：2026-06-13 · 含 Web 应用与浏览器插件*
