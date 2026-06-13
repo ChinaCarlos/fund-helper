@@ -1,0 +1,208 @@
+/* Fund Helper Desktop — 对齐 Web 端色板 + 平台原生风格 */
+
+:root {
+  --background: #f5f7fb;
+  --foreground: #1e293b;
+  --card-solid: #ffffff;
+  --card-foreground: #1e293b;
+  --primary: #fc4e50;
+  --primary-foreground: #ffffff;
+  --secondary: #fafbfc;
+  --secondary-foreground: #1e293b;
+  --muted: #eef1f6;
+  --muted-foreground: #8b95a8;
+  --accent: #fff1f1;
+  --accent-foreground: #fc4e50;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #eef1f6;
+  --border-strong: #e2e8f0;
+  --input: #eef1f6;
+  --ring: #fc4e50;
+  --radius: 10px;
+  --radius-card: 12px;
+  --radius-window: 10px;
+  --titlebar-height: 40px;
+  --rise: #fc4e50;
+  --fall: #07b360;
+  --flat: #8b95a8;
+  --index-pill-bg: #fafbfc;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --content-padding-x: 24px;
+  --content-padding-y: 20px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.dark {
+  --background: #0f1419;
+  --foreground: #e2e8f0;
+  --card-solid: #161b22;
+  --card-foreground: #e2e8f0;
+  --primary: #ff6b6e;
+  --secondary: #1c2128;
+  --muted: #21262d;
+  --muted-foreground: #8b949e;
+  --accent: #3d1516;
+  --border: #30363d;
+  --border-strong: #484f58;
+  --index-pill-bg: #1c2128;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* macOS / iOS 风格：更大圆角、柔和阴影、SF 字体 */
+[data-platform="macos"] {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "PingFang SC", "Hiragino Sans GB", sans-serif;
+  --radius: 10px;
+  --radius-card: 12px;
+  --radius-window: 10px;
+  --titlebar-height: 52px;
+  --content-padding-x: 28px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+/* Windows 风格：Segoe UI、略小圆角、扁平卡片 */
+[data-platform="windows"] {
+  --font-sans: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei", sans-serif;
+  --radius: 8px;
+  --radius-card: 8px;
+  --radius-window: 8px;
+  --titlebar-height: 32px;
+  --content-padding-x: 24px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+@layer utilities {
+  .fund-app-bg {
+    background: var(--background);
+  }
+
+  .web-card {
+    border-radius: var(--radius-card);
+    border: 1px solid var(--border);
+    background: var(--card-solid);
+    box-shadow: var(--shadow-card);
+  }
+
+  .web-card-body {
+    padding: 20px;
+  }
+
+  .mono-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .text-rise {
+    color: var(--rise);
+  }
+
+  .text-fall {
+    color: var(--fall);
+  }
+
+  .text-flat {
+    color: var(--flat);
+  }
+
+  .fund-scroll {
+    scrollbar-gutter: stable;
+  }
+
+  .fund-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .fund-scroll::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--muted-foreground) 40%, transparent);
+  }
+
+  .fund-list-item {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 56px;
+  }
+
+  .index-pill {
+    background: var(--index-pill-bg);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+
+  .native-btn {
+    appearance: auto;
+    -webkit-appearance: button;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 28px;
+    padding: 2px 12px;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.4;
+    color: ButtonText;
+    background: ButtonFace;
+    border: 1px solid ButtonBorder;
+    border-radius: var(--radius);
+    cursor: default;
+  }
+
+  .native-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .native-btn-primary {
+    color: var(--primary-foreground);
+    background: var(--primary);
+    border-color: var(--primary);
+  }
+
+  [data-platform="macos"] .native-btn {
+    border-radius: 6px;
+  }
+
+  [data-platform="windows"] .native-btn {
+    border-radius: 4px;
+    min-height: 32px;
+  }
+
+  .native-select {
+    appearance: auto;
+    -webkit-appearance: menulist-button;
+    min-height: 28px;
+    padding: 2px 8px;
+    font: inherit;
+    font-size: 13px;
+    color: FieldText;
+    background: Field;
+    border: 1px solid ButtonBorder;
+    border-radius: var(--radius);
+  }
+
+  [data-platform="windows"] .native-select {
+    min-height: 32px;
+  }
+
+  .native-label {
+    font-size: 13px;
+    color: var(--muted-foreground);
+  }
+
+  .native-fieldset {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  .native-legend {
+    font-size: 13px;
+    color: var(--muted-foreground);
+    padding: 0;
+    margin-bottom: 4px;
+  }
+}
