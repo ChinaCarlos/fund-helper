@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeftOutlined,
   FallOutlined,
   ReloadOutlined,
   RiseOutlined,
   SearchOutlined,
   SettingOutlined,
-  TrophyOutlined,
 } from '@ant-design/icons';
 import {
   Alert,
@@ -28,6 +25,7 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { FundCurveModal } from '@/components/FundCurveModal/FundCurveModal';
+import { AppHeader } from '@/components/AppHeader/AppHeader';
 import { api } from '@/api/client';
 import type {
   FundRankItem,
@@ -52,8 +50,9 @@ import {
   type MarketRankColumnKey,
   saveMarketRankVisibleColumns,
 } from '@/utils/marketRankColumns';
+import { PAGE_CONTENT_STYLE } from '@/utils/pageLayout';
 
-const { Header, Content } = Layout;
+const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const SORT_DIMENSION_TO_COLUMN: Record<RankDimension, MarketRankColumnKey> = {
@@ -116,7 +115,6 @@ function renderCellValue(key: MarketRankColumnKey, value: string | number | null
 }
 
 export function MarketRanking() {
-  const navigate = useNavigate();
   const [options, setOptions] = useState<FundRankOptionsResponse | null>(null);
   const [query, setQuery] = useState(DEFAULT_QUERY);
   const [items, setItems] = useState<FundRankItem[]>([]);
@@ -309,44 +307,25 @@ export function MarketRanking() {
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fb' }}>
-      <Header
-        style={{
-          background: '#fff',
-          borderBottom: '1px solid #eef1f6',
-          padding: '12px 24px',
-          height: 'auto',
-          lineHeight: 'normal',
-        }}
-      >
-        <Flex align="center" justify="space-between" gap={16} wrap="wrap">
-          <Flex align="center" gap={12}>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
-              返回持仓
-            </Button>
-            <div>
-              <Title level={5} style={{ margin: 0 }}>
-                <TrophyOutlined style={{ marginRight: 8, color: '#fc4e50' }} />
-                市场基金排行
-              </Title>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                东财全字段展示 · 排行维度以列呈现
-              </Text>
-            </div>
-          </Flex>
-          <Space>
-            <Button onClick={() => navigate('/market/heatmap')}>板块热力图</Button>
-            <Button
-              icon={<ReloadOutlined />}
-              loading={refreshing}
-              onClick={() => void loadRank(true)}
-            >
-              刷新
-            </Button>
-          </Space>
-        </Flex>
-      </Header>
+      <AppHeader
+        extra={
+          <Button
+            icon={<ReloadOutlined />}
+            loading={refreshing}
+            onClick={() => void loadRank(true)}
+          >
+            刷新
+          </Button>
+        }
+      />
 
-      <Content style={{ maxWidth: 1400, width: '100%', margin: '0 auto', padding: '24px 20px 48px' }}>
+      <Content style={PAGE_CONTENT_STYLE}>
+        <div style={{ marginBottom: 16 }}>
+          <Title level={4} style={{ margin: 0 }}>
+            市场基金排行
+          </Title>
+          <Text type="secondary">东财全字段展示 · 排行维度以列呈现</Text>
+        </div>
         <div
           style={{
             background: '#fff',

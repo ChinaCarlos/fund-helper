@@ -13,6 +13,7 @@ alwaysApply: true
 lsof -ti:8000,3000 2>/dev/null | xargs kill -9 2>/dev/null || true; sleep 2
 cd /Users/carlos/Downloads/yjb-realtime/backend && uv pip install -r requirements.txt -q
 cd /Users/carlos/Downloads/yjb-realtime && ./start.sh
+# Docker: cd /Users/carlos/Downloads/yjb-realtime && docker compose up -d --build
 ```
 
 - 在后台启动 `./start.sh`，等待后端与前端就绪（约 5–10 秒）

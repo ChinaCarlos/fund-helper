@@ -1,7 +1,7 @@
 import { api } from '@/api/client';
+import { getNotificationConfig } from '@/services/notificationConfig';
 import {
   getNotifyIntervalMs,
-  loadNotificationSettings,
   type NotificationConfig,
   type NotifyFrequency,
 } from '@/utils/notificationSettings';
@@ -37,7 +37,7 @@ function shouldSkipForTradingHours(
 export async function tryPushAfterRefresh(options?: {
   trading?: boolean;
 }): Promise<PushResult | null> {
-  const config = loadNotificationSettings();
+  const config = getNotificationConfig();
   if (!config.enabled) return null;
   if (config.trigger.frequency !== 'manual') return null;
 
@@ -49,7 +49,7 @@ export async function tryPushAfterRefresh(options?: {
 
 /** 定时任务触发推送（1m / 5m / 15m / 30m / 60m） */
 export async function tryScheduledPush(): Promise<PushResult | null> {
-  const config = loadNotificationSettings();
+  const config = getNotificationConfig();
   if (!config.enabled) return null;
   if (!getNotifyIntervalMs(config.trigger.frequency)) return null;
 

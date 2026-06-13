@@ -234,9 +234,9 @@ def _build_channel_content(
         return text, _feishu_card_for(snapshot, is_test=is_test)
 
     fallback = (
-        "【养基宝·连通性测试】\n你好，这是 fund-helper system message test"
+        "【Fund Helper·连通性测试】\n你好，这是 fund-helper system message test"
         if is_test
-        else "【养基宝】暂无持仓数据"
+        else "【Fund Helper】暂无持仓数据"
     )
     feishu_card = _feishu_card_for(None, is_test=is_test) if is_test else None
     return fallback, feishu_card

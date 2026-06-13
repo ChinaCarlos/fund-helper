@@ -10,11 +10,10 @@
  *         ├── webhook  群机器人，单向推送
  *         └── app      企业应用，可双向交互
  *
- * 本地存储 key: yjb-notification-config
+ * 通知配置仅存服务端（MongoDB notification_configs）；登录后拉取到内存缓存。
  */
 
 export const NOTIFICATION_CONFIG_VERSION = 1 as const;
-export const NOTIFICATION_CONFIG_STORAGE_KEY = 'yjb-notification-config';
 
 /** 已废弃：旧版虚拟单聊投递 ID，保存时自动剔除。 */
 export const FEISHU_BOT_P2P_TARGET_ID = '__feishu:bot_p2p';
@@ -54,7 +53,7 @@ export function getNotifyIntervalMs(frequency: NotifyFrequency): number | null {
   return NOTIFY_FREQUENCY_INTERVAL_MS[frequency] ?? null;
 }
 
-export const NOTIFICATION_CONFIG_CHANGED_EVENT = 'yjb-notification-config-changed';
+export const NOTIFICATION_CONFIG_CHANGED_EVENT = 'fund-helper-notification-config-changed';
 
 export interface TriggerConfig {
   frequency: NotifyFrequency;
@@ -494,22 +493,6 @@ export function sanitizeNotificationConfig(
   input: Partial<NotificationConfig>,
 ): NotificationConfig {
   return mergeNotificationConfig(input);
-}
-
-export function loadNotificationSettings(): NotificationConfig {
-  try {
-    const raw = localStorage.getItem(NOTIFICATION_CONFIG_STORAGE_KEY);
-    if (!raw) return createDefaultNotificationConfig();
-    return parseNotificationConfig(JSON.parse(raw));
-  } catch {
-    return createDefaultNotificationConfig();
-  }
-}
-
-export function saveNotificationSettings(config: NotificationConfig) {
-  const payload = sanitizeNotificationConfig(config);
-  localStorage.setItem(NOTIFICATION_CONFIG_STORAGE_KEY, JSON.stringify(payload));
-  window.dispatchEvent(new Event(NOTIFICATION_CONFIG_CHANGED_EVENT));
 }
 
 export function getChannel(

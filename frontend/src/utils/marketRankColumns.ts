@@ -109,7 +109,7 @@ export const DEFAULT_VISIBLE_MARKET_RANK_COLUMNS: MarketRankColumnKey[] = [
   ...DEFAULT_MARKET_RANK_COLUMN_ORDER,
 ];
 
-const STORAGE_KEY = 'yjb-market-rank-visible-columns-v2';
+const STORAGE_KEY = 'fund-helper-market-rank-visible-columns-v2';
 
 export function loadMarketRankVisibleColumns(): MarketRankColumnKey[] {
   try {

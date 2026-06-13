@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 
-from app.yjb.auth_store import AuthStore
+from app.auth.models import User
 from app.yjb.calculator import build_portfolio_snapshot
 from app.yjb.client import YjbApiError, YjbClient
 
@@ -21,15 +21,11 @@ def is_trading_hours() -> bool:
 class PortfolioPoller:
     """按需拉取持仓快照（无后台轮询、无 WebSocket）。"""
 
-    def __init__(self, auth_store: AuthStore):
-        self.auth_store = auth_store
+    async def fetch_snapshot(self, user: User) -> dict:
+        if not user.has_yjb:
+            raise YjbApiError("未绑定养基宝", status_code=403)
 
-    async def fetch_snapshot(self) -> dict:
-        session = self.auth_store.session
-        if not session.is_valid:
-            raise YjbApiError("未登录", status_code=401)
-
-        client = YjbClient(token=session.token)
+        client = YjbClient(token=user.yjb_token)
         try:
             collect, indices = await asyncio.gather(
                 client.get_collect(),
@@ -48,8 +44,8 @@ class PortfolioPoller:
             )
             snapshot["updated_at"] = datetime.now().isoformat(timespec="seconds")
             snapshot["user"] = {
-                "nickname": session.nickname,
-                "avatar": session.avatar,
+                "nickname": user.yjb_nickname,
+                "avatar": user.yjb_avatar,
             }
             snapshot["trading"] = is_trading_hours()
             return snapshot

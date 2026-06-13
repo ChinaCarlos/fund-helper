@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  AppstoreOutlined,
-  ArrowLeftOutlined,
-  FundOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
+import { FundOutlined, ReloadOutlined } from '@ant-design/icons';
 import {
   Alert,
   Button,
@@ -19,6 +13,7 @@ import {
   Typography,
 } from 'antd';
 import { api } from '@/api/client';
+import { AppHeader } from '@/components/AppHeader/AppHeader';
 import { SectorFundsModal } from '@/components/SectorFundsModal/SectorFundsModal';
 import type {
   FundFlowIndicator,
@@ -33,9 +28,10 @@ import {
   heatmapValue,
   heatmapValueLabel,
 } from '@/utils/heatmap';
-import { formatPercent } from '@/utils/format';
+import { formatPercent, trendColor } from '@/utils/format';
+import { PAGE_CONTENT_STYLE } from '@/utils/pageLayout';
 
-const { Header, Content } = Layout;
+const { Content } = Layout;
 const { Title, Text } = Typography;
 
 function HeatmapTile({
@@ -63,7 +59,12 @@ function HeatmapTile({
             {kind === 'fund_flow' ? '主力净流入' : '涨跌幅'}：{heatmapValueLabel(item, kind)}
           </div>
           {item.change_rate != null && kind === 'fund_flow' ? (
-            <div>涨跌幅：{formatPercent(item.change_rate)}</div>
+            <div>
+              涨跌幅：
+              <span style={{ color: trendColor(item.change_rate) }}>
+                {formatPercent(item.change_rate)}
+              </span>
+            </div>
           ) : null}
           {item.leading_stock ? <div>领涨：{item.leading_stock}</div> : null}
           {item.up_count != null ? (
@@ -111,7 +112,6 @@ function HeatmapTile({
 }
 
 export function MarketHeatmap() {
-  const navigate = useNavigate();
   const [options, setOptions] = useState<HeatmapOptionsResponse | null>(null);
   const [kind, setKind] = useState<HeatmapKind>('sector_change');
   const [boardType, setBoardType] = useState<HeatmapBoardType>('industry');
@@ -164,44 +164,25 @@ export function MarketHeatmap() {
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fb' }}>
-      <Header
-        style={{
-          background: '#fff',
-          borderBottom: '1px solid #eef1f6',
-          padding: '12px 24px',
-          height: 'auto',
-          lineHeight: 'normal',
-        }}
-      >
-        <Flex align="center" justify="space-between" gap={16} wrap="wrap">
-          <Flex align="center" gap={12}>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/market')}>
-              返回排行
-            </Button>
-            <div>
-              <Title level={5} style={{ margin: 0 }}>
-                <AppstoreOutlined style={{ marginRight: 8, color: '#fc4e50' }} />
-                板块热力图
-              </Title>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                东财行业/概念板块 · 涨幅与主力资金流
-              </Text>
-            </div>
-          </Flex>
-          <Space>
-            <Button onClick={() => navigate('/market')}>基金排行</Button>
-            <Button
-              icon={<ReloadOutlined />}
-              loading={refreshing}
-              onClick={() => void loadHeatmap(true)}
-            >
-              刷新
-            </Button>
-          </Space>
-        </Flex>
-      </Header>
+      <AppHeader
+        extra={
+          <Button
+            icon={<ReloadOutlined />}
+            loading={refreshing}
+            onClick={() => void loadHeatmap(true)}
+          >
+            刷新
+          </Button>
+        }
+      />
 
-      <Content style={{ maxWidth: 1400, width: '100%', margin: '0 auto', padding: '24px 20px 48px' }}>
+      <Content style={PAGE_CONTENT_STYLE}>
+        <div style={{ marginBottom: 16 }}>
+          <Title level={4} style={{ margin: 0 }}>
+            板块热力图
+          </Title>
+          <Text type="secondary">东财行业/概念板块 · 涨幅与主力资金流</Text>
+        </div>
         <div
           style={{
             background: '#fff',

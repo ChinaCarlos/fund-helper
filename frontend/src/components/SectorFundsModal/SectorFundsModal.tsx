@@ -129,7 +129,14 @@ export function SectorFundsModal({
         {sector ? (
           <Text type="secondary" style={{ display: 'block', marginBottom: 12, fontSize: 13 }}>
             按当日涨幅排序 · 名称/跟踪标的匹配「{sector.name}」
-            {sector.change_rate != null ? ` · 板块涨跌 ${formatPercent(sector.change_rate)}` : ''}
+            {sector.change_rate != null ? (
+              <>
+                {' · 板块涨跌 '}
+                <Text style={{ color: trendColor(sector.change_rate) }}>
+                  {formatPercent(sector.change_rate)}
+                </Text>
+              </>
+            ) : null}
           </Text>
         ) : null}
         {loading ? (

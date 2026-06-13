@@ -1,0 +1,78 @@
+# Fund Helper — Docker Compose
+#
+# 本地开发与 Docker 部署使用独立 MongoDB 容器与数据卷，互不影响。
+#
+# 1) 本地开发（数据卷 mongo_dev_data）
+#    docker compose --profile dev up -d
+#    ./start.sh
+#    → mongodb://localhost:27017
+#
+# 2) Docker 一体部署（数据卷 mongo_data）
+#    docker compose --profile full up -d --build
+#    → app 容器内 mongodb://mongo:27017
+#
+# 快捷：./dev-infra.sh
+
+name: fund-helper
+
+services:
+  mongo-dev:
+    profiles: [dev]
+    image: mongo:7
+    container_name: fund-helper-mongo-dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_dev_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  mongo:
+    profiles: [full]
+    image: mongo:7
+    container_name: fund-helper-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  app:
+    profiles: [full]
+    image: ghcr.io/chinacarlos/fund-helper:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fund-helper
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      APP_NAME: Fund Helper
+      API_PORT: "8080"
+      SERVE_STATIC: "true"
+      STATIC_DIR: /app/frontend/dist
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB: fund_helper
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: "123456"
+      PUBLIC_BASE_URL: http://localhost:8080
+      FRONTEND_BASE_URL: http://localhost:8080
+      CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+      YJB_BASE_URL: http://browser-plug-api.yangjibao.com
+    restart: unless-stopped
+
+volumes:
+  mongo_dev_data:
+  mongo_data:

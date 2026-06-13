@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { getNotificationConfig } from '@/services/notificationConfig';
 import {
   getNotifyIntervalMs,
-  loadNotificationSettings,
   NOTIFICATION_CONFIG_CHANGED_EVENT,
 } from '@/utils/notificationSettings';
 import { tryScheduledPush } from '@/utils/notificationPush';
@@ -20,14 +20,14 @@ export function useNotificationSchedule() {
 
     const setup = () => {
       clearTimer();
-      const config = loadNotificationSettings();
+      const config = getNotificationConfig();
       if (!config.enabled) return;
 
       const intervalMs = getNotifyIntervalMs(config.trigger.frequency);
       if (!intervalMs) return;
 
       timerRef.current = setInterval(() => {
-        const latest = loadNotificationSettings();
+        const latest = getNotificationConfig();
         if (!latest.enabled) return;
         if (getNotifyIntervalMs(latest.trigger.frequency) !== intervalMs) return;
         void tryScheduledPush();

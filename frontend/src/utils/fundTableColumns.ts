@@ -41,7 +41,7 @@ export const DEFAULT_COLUMN_ORDER: FundColumnKey[] = [
 
 export const DEFAULT_VISIBLE_COLUMNS: FundColumnKey[] = [...DEFAULT_COLUMN_ORDER];
 
-const STORAGE_KEY = 'yjb-fund-table-visible-columns';
+const STORAGE_KEY = 'fund-helper-fund-table-visible-columns';
 
 export function loadVisibleColumns(): FundColumnKey[] {
   try {

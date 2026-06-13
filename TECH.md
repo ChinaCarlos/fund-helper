@@ -1,6 +1,6 @@
-# 养基宝实时监控 — 技术文档 (TECH.md)
+# Fund Helper — 技术文档 (TECH.md)
 
-> **YJB Realtime**：基于养基宝 `browser-plug-api` 的基金收益实时监控面板。  
+> **fund-helper**：基于养基宝 `browser-plug-api` 的基金收益实时监控面板。  
 > 本文档描述项目架构、接口协议、功能模块、数据流与部署方式。上游养基宝原始 API 详见 [API_README.md](./API_README.md)。
 
 ---
@@ -16,8 +16,8 @@
 7. [功能模块](#7-功能模块)
 8. [数据模型](#8-数据模型)
 9. [本服务 API 文档](#9-本服务-api-文档)
-10. [WebSocket 协议](#10-websocket-协议)
-11. [养基宝上游 API 映射](#11-养基宝上游-api-映射)
+10. [数据刷新与通知推送](#10-数据刷新与通知推送)
+11. [养基宝与东财数据映射](#11-养基宝与东财数据映射)
 12. [流程图](#12-流程图)
 13. [配置与环境变量](#13-配置与环境变量)
 14. [部署与启动](#14-部署与启动)
@@ -32,27 +32,30 @@
 
 本项目是一个 **BFF（Backend For Frontend）+ 实时监控面板**：
 
-- **后端**：代理养基宝 browser-plug-api，统一管理 Token、MD5 签名、数据归一化、交易时段节流、WebSocket 推送。
-- **前端**：React 单页应用，通过 WebSocket 接收持仓快照，通过 REST 处理登录、收益曲线、基金增删。
+- **后端**：代理养基宝 browser-plug-api，统一管理 Token、MD5 签名、数据归一化；扩展 AKShare/东财市场数据；支持钉钉/飞书/企业微信通知推送；Docker 模式下托管前端静态资源。
+- **前端**：React 单页应用，通过 REST 按需拉取持仓快照，提供市场排行、板块热力图、通知设置等页面。
 
 ### 1.2 核心能力
 
 | 能力 | 说明 |
 |------|------|
-| 实时持仓推送 | 交易时段每 30s 拉取养基宝数据，经 WebSocket 广播 |
-| 大盘指数 | 上证、沪深300、深证成指、创业板指，涨红跌绿 |
+| 持仓监控 | 手动刷新拉取养基宝持仓，展示大盘指数与汇总卡片 |
 | 多账户分组 | Tab 切换全部 / 支付宝 / 天天基金等分组 |
 | 收益曲线 | 汇总 + 各分组独立曲线，自研 SVG 图表 |
-| 基金管理 | 搜索、添加、删除持仓 |
+| 基金管理 | 搜索、添加、删除持仓，可自定义表格列 |
+| 市场排行 | 全市场基金多维度排行（AKShare / 东财），支持列配置与基金曲线弹窗 |
+| 板块热力图 | 行业/概念板块涨幅或资金流向热力图，可下钻板块关联基金 |
+| 通知推送 | 钉钉 / 飞书 / 企业微信，Webhook 或企业应用，定时或刷新后推送持仓收益 |
 | 微信扫码登录 | 后端生成高清二维码，Token 持久化 |
-| 交易时段优化 | 非交易时段不请求养基宝 API，降低无效轮询 |
+| Docker 部署 | 单容器提供 API + 静态前端，数据卷持久化登录态与通知配置 |
 
 ### 1.3 服务端口
 
 | 服务 | 默认端口 | 说明 |
 |------|----------|------|
-| FastAPI 后端 | `8000` | REST + WebSocket |
-| React 前端 | `3000` | 开发服务器，代理 `/api` 与 `/ws` |
+| FastAPI 后端 | `8000` | REST API（本地开发） |
+| React 前端 | `3000` | 开发服务器，代理 `/api` |
+| Docker 一体 | `8080` | API + 静态前端（`SERVE_STATIC=true`） |
 
 ---
 
@@ -61,9 +64,10 @@
 | 层级 | 技术 | 版本/说明 |
 |------|------|-----------|
 | 后端运行时 | Python | 3.11+（兼容 3.9+） |
-| 后端框架 | FastAPI | 异步 REST + WebSocket |
+| 后端框架 | FastAPI | 异步 REST API |
 | HTTP 客户端 | httpx | 异步请求养基宝 API |
-| 配置 | pydantic-settings | 读取 `.env` |
+| 配置 | pydantic-settings | 读取 `.env`，支持逗号分隔 CORS |
+| 市场数据 | akshare | 东财 / 天天基金接口封装 |
 | 二维码 | qrcode + Pillow | 后端生成 PNG base64 |
 | 前端框架 | React | 19 |
 | 语言 | TypeScript | 严格类型 |
@@ -81,15 +85,15 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        用户浏览器 (:3000)                        │
-│  React SPA ── REST (/api/*) ── WebSocket (/ws)                  │
+│                        用户浏览器 (:3000 / :8080)                │
+│  React SPA ── REST (/api/*)                                     │
 └────────────────────────────┬────────────────────────────────────┘
-                             │ dev proxy / 生产反代
+                             │ dev proxy / Docker 同域 / Nginx 反代
 ┌────────────────────────────▼────────────────────────────────────┐
-│                   FastAPI BFF 服务 (:8000)                       │
+│                   FastAPI BFF 服务 (:8000 / :8080)               │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────────┐ │
-│  │ REST API │  │ WebSocket│  │  Poller  │  │   AuthStore     │ │
-│  │ routes   │  │broadcast │  │ 30s/idle │  │  token.json     │ │
+│  │ REST API │  │  Market  │  │  Notify  │  │   AuthStore     │ │
+│  │ routes   │  │ AKShare  │  │ 推送服务  │  │   MongoDB       │ │
 │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────────────────┘ │
 │       │             │             │                              │
 │       └─────────────┴──────┬──────┘                              │
@@ -97,34 +101,41 @@
 │                    ┌──────────────┐                              │
 │                    │  YjbClient   │  MD5 签名 + Authorization   │
 │                    │  calculator  │  数据归一化 / 收益计算        │
+│                    │  Poller      │  按需拉取持仓快照             │
 │                    └──────┬───────┘                              │
 └───────────────────────────┼──────────────────────────────────────┘
                             │ HTTPS
-┌───────────────────────────▼──────────────────────────────────────┐
-│           养基宝 browser-plug-api (yangjibao.com)                 │
-│  /account_collect  /fund_hold  /income_line_data  /qr_code ...  │
-└──────────────────────────────────────────────────────────────────┘
+        ┌───────────────────┴───────────────────┐
+        ▼                                       ▼
+┌───────────────────────┐           ┌──────────────────────────────┐
+│ 养基宝 browser-plug-api │           │ 东方财富 / 天天基金 (东财)      │
+│ account_collect ...   │           │ AKShare 拉取排行 / 热力图 / 曲线 │
+└───────────────────────┘           └──────────────────────────────┘
 ```
 
 ### 3.2 数据流原则
 
-1. **持仓主数据**：Poller → WebSocket → `useWebSocket` → Dashboard（推送驱动）
-2. **收益曲线**：前端 `useIncomeLines` → REST `/api/income/*` → 养基宝（按需拉取）
-3. **基金增删**：前端 REST → 养基宝 → 后端触发 `poll_once()` 刷新快照
-4. **登录**：前端轮询 REST → 养基宝扫码 → `AuthStore.save()` → WebSocket `auth_ok`
+1. **持仓主数据**：前端 `usePortfolio` → REST `GET /api/portfolio` → `PortfolioPoller.fetch_snapshot()` → 养基宝
+2. **手动刷新**：Dashboard 刷新按钮 → 同上 → 可选触发通知推送
+3. **收益曲线**：前端 `useIncomeLines` → REST `/api/income/*` → 养基宝（按需拉取）
+4. **基金增删**：前端 REST → 养基宝 → 用户手动刷新更新快照
+5. **市场数据**：市场排行 / 热力图 / 基金曲线 → REST `/api/market/*` → AKShare / 东财（与养基宝独立）
+6. **通知推送**：设置页保存配置 → MongoDB `notification_configs` → 定时或刷新后 `POST /api/notify/push`
+7. **登录**：扫码成功 → 创建用户与会话 → 设置 Cookie
 
 ### 3.3 组件依赖关系（后端）
 
 ```
 main.py (lifespan)
-  ├── AuthStore          ← token.json 读写、legacy 迁移
-  ├── Broadcaster        ← WebSocket 连接池
-  └── PortfolioPoller    ← 定时拉取 + 广播
-        ├── YjbClient    ← 养基宝 HTTP
-        └── calculator   ← build_portfolio_snapshot / normalize_income_line
+  ├── auth/                  ← 多用户 Session Cookie
+  ├── user_repo / session_repo
+  └── PortfolioPoller        ← 按需拉取持仓快照（无后台轮询）
+        ├── YjbClient        ← 养基宝 HTTP
+        └── calculator       ← build_portfolio_snapshot / normalize_income_line
 
-api/routes.py            ← REST 端点，复用 YjbClient + Poller
-api/websocket.py         ← WS 连接，首条消息推送缓存或 auth 状态
+api/routes.py                ← REST 端点
+market/*                     ← 排行 / 热力图 / 基金曲线（AKShare）
+notify/*                     ← 配置持久化 / 连通性测试 / 推送
 ```
 
 ### 3.4 组件依赖关系（前端）
@@ -134,16 +145,22 @@ App.tsx
   ├── ConfigProvider (antd 主题)
   ├── ProtectedRoute   → api.getAuthStatus()
   ├── Login            → 扫码登录流程
-  └── Dashboard
-        ├── useWebSocket     → portfolio 实时数据
-        ├── IndexBar           ← portfolio.indices
-        ├── SummaryCard × 4    ← portfolio 汇总字段
-        └── HoldingsPanel
-              ├── useIncomeLines → REST 收益曲线
-              ├── FundSearch       → 搜索/添加
-              ├── IncomeLineChart  → SVG 曲线
-              ├── AccountSummaryCard
-              └── FundTable        → 删除持仓
+  ├── Dashboard        → 持仓主页
+  ├── MarketRanking    → /market 市场排行
+  └── MarketHeatmap    → /market/heatmap 板块热力图
+
+Dashboard
+  ├── usePortfolio         → REST 持仓快照 + 手动刷新
+  ├── useNotificationSchedule → 定时通知推送
+  ├── IndexBar             ← portfolio.indices
+  ├── SummaryCard × 4      ← portfolio 汇总字段
+  ├── SettingsModal        → 通知渠道配置
+  └── HoldingsPanel
+        ├── useIncomeLines   → REST 收益曲线
+        ├── FundSearch       → 搜索/添加
+        ├── IncomeLineChart  → SVG 曲线
+        ├── AccountSummaryCard
+        └── FundTable        → 删除持仓、列配置
 ```
 
 ---
@@ -151,30 +168,48 @@ App.tsx
 ## 4. 目录结构
 
 ```
-yjb-realtime/
+fund-helper/
 ├── TECH.md                 # 本文档
 ├── README.md               # 快速入门
 ├── API_README.md           # 养基宝上游 API 逆向文档
+├── Dockerfile              # 多阶段构建（前端 + 后端）
+├── docker-compose.yml      # 单容器部署
+├── .env.docker.example     # Docker 环境变量示例
+├── reset.sh                # 清除依赖与 Docker 卷
 ├── start.sh                # 一键启动脚本
-├── data/                   # 运行时数据（自动生成）
-│   └── token.json          # 登录 Token 持久化
 │
 ├── backend/
 │   ├── requirements.txt
 │   ├── .env                # 可选环境变量
 │   └── app/
-│       ├── main.py         # FastAPI 入口、CORS、lifespan
+│       ├── main.py         # FastAPI 入口、CORS、lifespan、SPA 静态托管
 │       ├── config.py       # 配置项
+│       ├── db/             # MongoDB 连接
+│       │   ├── mongo.py
+│       │   └── collections.py
 │       ├── api/
-│       │   ├── routes.py   # REST API (/api)
-│       │   └── websocket.py# WebSocket (/ws)
+│       │   └── routes.py   # REST API (/api)
+│       ├── market/         # 市场数据（AKShare / 东财）
+│       │   ├── network.py  # 东财直连、绕过系统代理
+│       │   ├── fund_rank.py
+│       │   ├── heatmap.py
+│       │   ├── fund_curve.py
+│       │   ├── sector_funds.py
+│       │   ├── benchmark_curve.py
+│       │   └── schemas.py
+│       ├── notify/         # 通知推送
+│       │   ├── config_store.py
+│       │   ├── service.py
+│       │   ├── template.py
+│       │   ├── delivery.py
+│       │   ├── delivery_catalog.py
+│       │   └── feishu_group.py
 │       ├── services/
-│       │   ├── poller.py   # 定时轮询
-│       │   └── broadcaster.py # WS 广播
+│       │   └── poller.py   # 按需拉取持仓快照
 │       └── yjb/
 │           ├── client.py   # 养基宝 HTTP 客户端
-│           ├── auth_store.py # Token 存储
-│           └── calculator.py # 数据计算与归一化
+│           ├── auth_store.py
+│           └── calculator.py
 │
 └── frontend/
     ├── rsbuild.config.ts   # 构建 + dev 代理
@@ -184,12 +219,17 @@ yjb-realtime/
         ├── App.tsx
         ├── api/client.ts   # REST 封装
         ├── hooks/
-        │   ├── useWebSocket.ts
-        │   └── useIncomeLines.ts
-        ├── types/portfolio.ts
+        │   ├── usePortfolio.ts
+        │   ├── useIncomeLines.ts
+        │   └── useNotificationSchedule.ts
+        ├── types/
+        │   ├── portfolio.ts
+        │   └── market.ts
         ├── pages/
         │   ├── Dashboard/Dashboard.tsx
-        │   └── Login/Login.tsx
+        │   ├── Login/Login.tsx
+        │   ├── MarketRanking/MarketRanking.tsx
+        │   └── MarketHeatmap/MarketHeatmap.tsx
         ├── components/
         │   ├── IndexBar/
         │   ├── SummaryCard/
@@ -199,11 +239,20 @@ yjb-realtime/
         │   ├── IncomeLineChart/
         │   ├── IncomeSparkline/
         │   ├── FundTable/
-        │   └── FundSearch/
-        ├── utils/
-        │   ├── format.ts       # 金额/百分比/涨跌色
-        │   └── incomeChart.ts  # SVG 曲线算法
-        └── styles/global.scss
+        │   ├── FundSearch/
+        │   ├── FundCurveModal/
+        │   ├── SectorFundsModal/
+        │   ├── SeriesLineChart/
+        │   └── SettingsModal/
+        └── utils/
+            ├── format.ts
+            ├── incomeChart.ts
+            ├── heatmap.ts
+            ├── fundTableColumns.ts
+            ├── marketRankColumns.ts
+            ├── notificationSettings.ts
+            ├── notificationPush.ts
+            └── notificationConnectivity.ts
 ```
 
 ---
@@ -216,22 +265,17 @@ yjb-realtime/
 @asynccontextmanager
 async def lifespan(app):
     auth_store = AuthStore()
-    broadcaster = Broadcaster()
-    poller = PortfolioPoller(auth_store, broadcaster)
+    poller = PortfolioPoller(auth_store)
+
     app.state.auth_store = auth_store
-    app.state.broadcaster = broadcaster
     app.state.poller = poller
+    app.state.notify_config_store = NotificationConfigStore()
     app.state.qr_sessions = {}
 
-    poller.start()                          # 启动后台轮询循环
-    if auth_store.session.is_valid:
-        asyncio.create_task(poller.poll_once())  # 有 Token 则立即拉一次
-
     yield
-    poller.stop()
 ```
 
-启动时若本地已有有效 Token，会**立即执行一次** `poll_once()`，保证 Dashboard 首屏有数据（不受交易时段限制）。
+`SERVE_STATIC=true` 时，`_mount_frontend()` 挂载 `frontend/dist` 并提供 SPA fallback（`/api`、`/docs` 除外）。
 
 ### 5.2 YjbClient — 养基宝 HTTP 客户端
 
@@ -256,27 +300,26 @@ Request-Sign = MD5(url_path + token + timestamp + API_SECRET)
 - HTTP 429 → 请求频繁
 - `code != 200` → 业务错误
 
-### 5.3 AuthStore — Token 持久化
+### 5.3 认证与用户（MongoDB + Session Cookie）
 
-| 方法 | 说明 |
+**两层认证**：
+
+1. **应用登录**：用户名 + 密码（bcrypt），Cookie `fund_helper_session`
+2. **养基宝绑定**：持仓相关 API 需当前用户已绑定 `yjb_token`；未绑定或过期时返回 `yjb_not_bound` / `yjb_token_expired`，前端展示扫码绑定页
+
+**集合**：
+
+| 集合 | 说明 |
 |------|------|
-| `session` | 当前 `AuthSession`（token/nickname/avatar/login_time） |
-| `save()` | 登录成功后写入 `data/token.json` |
-| `clear()` | 登出/失效时删除文件 |
-| `_try_migrate_legacy_token()` | 自动从 `yjb-plugin-1.1.4/scripts/token.json` 迁移 |
+| `users` | 本地账号（`username` 唯一）+ 可选养基宝 Token / 昵称 / 头像 |
+| `sessions` | 浏览器会话 |
+| `notification_configs` | `_id` = `user_id` |
 
-**Token 文件格式**：
+首次启动 `ensure_default_admin()` 创建管理员（`ADMIN_USERNAME` / `ADMIN_PASSWORD`，默认 `admin` / `123456`）。用户 CRUD 见 `/api/admin/users`。
 
-```json
-{
-  "token": "xxx",
-  "nickname": "用户昵称",
-  "avatar": "https://cdn.yangjibao.com/...",
-  "login_time": "2026-06-12 10:30:00"
-}
-```
+### 5.4 PortfolioPoller — 按需拉取
 
-### 5.4 PortfolioPoller — 定时轮询
+> 无后台定时轮询、无 WebSocket。每次 `GET /api/portfolio` 或通知推送前实时请求养基宝。
 
 **交易时段判断** `is_trading_hours()`：
 
@@ -287,20 +330,6 @@ Request-Sign = MD5(url_path + token + timestamp + API_SECRET)
 | 13:30 – 15:01 | 交易 |
 | 其余时间 | 非交易 |
 
-**轮询循环逻辑**：
-
-```
-while True:
-    if 未登录:
-        sleep(idle_check_interval)  # 默认 60s
-        continue
-    if 交易时段:
-        poll_once()
-        sleep(poll_interval)        # 默认 30s
-    else:
-        sleep(idle_check_interval)    # 不请求养基宝，仅等待进入交易时段
-```
-
 **`fetch_snapshot()` 拉取顺序**：
 
 1. 并行：`get_collect()` + `get_index()`
@@ -308,19 +337,39 @@ while True:
 3. `build_portfolio_snapshot()` 组装
 4. 附加 `updated_at`、`user`、`trading`
 
-**`poll_once()` 广播**：
+### 5.5 Market — 市场数据模块
 
-- 成功 → `{ type: "portfolio_update", data: snapshot }`
-- 401 → 清空 Token → `{ type: "auth_required" }`
-- 其他错误 → `{ type: "error", message }`
+| 文件 | 职责 |
+|------|------|
+| `network.py` | 启动时 patch `requests` / AKShare，东财域名直连、绕过 Clash 等系统代理 |
+| `fund_rank.py` | 全市场基金排行，多维度排序与分页 |
+| `heatmap.py` | 行业/概念板块涨幅或资金流向热力图 |
+| `fund_curve.py` | 单只基金累计收益 / 净值曲线 |
+| `sector_funds.py` | 板块关联基金列表 |
+| `benchmark_curve.py` | 板块 vs 上证 / 创业板指对比叠加 |
 
-### 5.5 Broadcaster — WebSocket 广播
+数据来源：AKShare 封装东方财富、天天基金公开接口，**不经过养基宝**。
 
-- 维护 `set[WebSocket]` 连接集合
-- `broadcast(message)` 向所有连接发送 JSON，失败连接自动移除
-- 使用 `asyncio.Lock` 保证并发安全
+### 5.6 Notify — 通知推送模块
 
-### 5.6 Calculator — 数据归一化
+| 文件 | 职责 |
+|------|------|
+| `config_store.py` | 读写 MongoDB `notification_configs` |
+| `template.py` | 持仓收益文本 / 飞书交互卡片模板 |
+| `service.py` | 连通性测试、多渠道推送（Webhook + 企业应用） |
+| `delivery.py` | 解析钉钉 / 飞书 / 企业微信应用投递目标 |
+| `delivery_catalog.py` | 拉取可投递会话列表 |
+| `feishu_group.py` | 一键创建飞书通知群 |
+
+**支持渠道**：
+
+| 平台 | Webhook 群机器人 | 企业应用 |
+|------|------------------|----------|
+| 钉钉 | ✓ | ✓ |
+| 飞书 | ✓ | ✓ |
+| 企业微信 | ✓（key 参数） | ✓ |
+
+### 5.7 Calculator — 数据归一化
 
 | 函数 | 职责 |
 |------|------|
@@ -345,6 +394,8 @@ while True:
 | 路径 | 组件 | 守卫 |
 |------|------|------|
 | `/` | `Dashboard` | `ProtectedRoute` 需登录 |
+| `/market` | `MarketRanking` | 需登录 |
+| `/market/heatmap` | `MarketHeatmap` | 需登录 |
 | `/login` | `Login` | 无 |
 | `*` | 重定向到 `/` | — |
 
@@ -354,29 +405,38 @@ while True:
 
 | 层级 | 位置 | 数据 |
 |------|------|------|
-| 实时层 | `useWebSocket` | `portfolio`（唯一全局数据源） |
-| 页面层 | `Dashboard` | 头像加载失败 flag |
+| 持仓层 | `usePortfolio` | `portfolio`（Dashboard 主数据源） |
+| 页面层 | `Dashboard` | 头像加载失败 flag、设置弹窗 |
 | 页面层 | `Login` | 二维码、轮询状态 |
+| 页面层 | `MarketRanking` / `MarketHeatmap` | 筛选条件、表格/热力图数据 |
 | 组件层 | `HoldingsPanel` | `activeTab` |
 | 组件层 | `FundSearch` | 关键词、结果、添加 Modal |
+| 组件层 | `SettingsModal` | 通知渠道配置（localStorage + 服务端同步） |
 | Hook 层 | `useIncomeLines` | 曲线数据、loading、error |
+| Hook 层 | `useNotificationSchedule` | 定时推送 interval |
 
-数据流：**WebSocket → Dashboard → props 下发子组件**。
+数据流：**REST → usePortfolio → Dashboard → props 下发子组件**。
 
 ### 6.3 自定义 Hooks
 
-#### `useWebSocket`
+#### `usePortfolio`
 
-- 连接 `ws(s)://host/ws`
-- 断线 3 秒自动重连
-- 消息分发：`portfolio_update` / `auth_required` / `auth_ok` / `error`
-- 返回 `{ connected, portfolio, error }`
+- 挂载时 `GET /api/portfolio` 加载首屏
+- `refresh()` 手动刷新，返回最新快照
+- 401 时触发 `onAuthRequired` 跳转登录
+- 返回 `{ portfolio, loading, refreshing, error, refresh }`
 
 #### `useIncomeLines(accountIds, refreshKey?, trading?)`
 
 - 并行请求：汇总曲线 `collect=true` + 各账户 `account_ids[]`
 - **仅交易时段**将 `updatedAt` 作为 `refreshKey`，非交易时段只拉一次
 - 返回 `{ collectLine, linesByAccount, loading, error }`
+
+#### `useNotificationSchedule`
+
+- 读取 `notificationSettings` 中的触发频次
+- 支持 1m / 5m / 15m / 30m / 60m 定时调用 `POST /api/notify/push`
+- 配置变更时监听 `fund-helper-notification-config-changed` 事件重建 interval
 
 ### 6.4 视觉规范
 
@@ -396,9 +456,10 @@ while True:
 ```typescript
 proxy: {
   '/api': { target: 'http://127.0.0.1:8000' },
-  '/ws':   { target: 'ws://127.0.0.1:8000', ws: true },
 }
 ```
+
+Docker / 生产模式下前端与 API 同域，无需代理。
 
 ---
 
@@ -411,17 +472,19 @@ proxy: {
 | 二维码获取 | `POST /api/auth/qrcode` → 养基宝 `/qr_code` → 后端 qrcode 库生成 PNG base64 |
 | 状态轮询 | 前端每 2s 调用 `GET /api/auth/qrcode/{id}/status` |
 | 状态码 | `0` 等待 / `1` 已扫码 / `2` 成功 / `3` 失效 |
-| Token 保存 | `state==2` 时 `AuthStore.save()` + WS 广播 `auth_ok` + 触发 `poll_once()` |
+| Token 保存 | `state==2` 时 `AuthStore.save()` |
 | 过期 | 前端 4 分钟超时，提示刷新 |
 | 头像 | `GET /api/auth/avatar` 代理 CDN，避免浏览器跨域/直连失败 |
 
-### 7.2 实时监控模块
+### 7.2 持仓监控模块
 
 | 组件 | 数据源 | 展示内容 |
 |------|--------|----------|
 | `IndexBar` | `portfolio.indices` | 四大指数名称、点位、涨跌幅 |
 | `SummaryCard` × 4 | `portfolio` 汇总字段 | 总资产、当日收益、净涨跌、账户数 |
 | `HoldingsPanel` | `portfolio.accounts` | Tab 分组切换 |
+
+Dashboard 右上角提供**刷新**按钮，调用 `usePortfolio.refresh()` 重新拉取养基宝数据；刷新成功后可按通知配置触发推送。
 
 ### 7.3 持仓面板模块 (`HoldingsPanel`)
 
@@ -464,12 +527,57 @@ proxy: {
 | 操作 | API | 后续 |
 |------|-----|------|
 | 搜索 | `GET /api/funds/search?keyword=` | 350ms 防抖，Popover 展示 |
-| 添加 | `POST /api/funds/hold` | 选分组、填份额/成本 → 触发 `poll_once()` |
-| 删除 | `DELETE /api/funds/hold` | Modal 二次确认 → 触发 `poll_once()` |
+| 添加 | `POST /api/funds/hold` | 选分组、填份额/成本 → 用户手动刷新 |
+| 删除 | `DELETE /api/funds/hold` | Modal 二次确认 → 用户手动刷新 |
 
 搜索支持：基金代码、名称、拼音简写、主题标签。
 
-### 7.6 账户图标模块 (`AccountIcon`)
+`FundTable` 与 `MarketRanking` 均支持**自定义可见列**，偏好保存在 localStorage（`fund-helper-fund-table-visible-columns`、`fund-helper-market-rank-visible-columns-v2`）。
+
+### 7.6 市场排行模块 (`MarketRanking`)
+
+- 路由：`/market`
+- 数据源：`GET /api/market/rank`，筛选项来自 `/api/market/rank/options`
+- 支持维度：当天 / 近 1 周~3 年 / 实时估计涨幅
+- 支持范围：全部开放式 / 指数型；按基金类型、指数板块、主题板块筛选
+- 点击基金名称打开 `FundCurveModal`，拉取 `/api/market/fund/{code}/curve`
+- 列显示/排序偏好持久化到 localStorage
+
+### 7.7 板块热力图模块 (`MarketHeatmap`)
+
+- 路由：`/market/heatmap`
+- 数据源：`GET /api/market/heatmap`
+- 两种模式：`sector_change`（板块涨幅）、`fund_flow`（资金流向）
+- 板块类型：行业 / 概念；资金流向指标：今日 / 5 日 / 10 日
+- 点击板块格打开 `SectorFundsModal`，拉取 `/api/market/sector/funds`
+
+### 7.8 通知推送模块 (`SettingsModal`)
+
+**配置结构**（v1）：
+
+```
+NotificationConfig
+├── enabled          总开关
+├── trigger          frequency + tradingHoursOnly
+└── channels
+    └── dingtalk | feishu | wecom
+        ├── webhook  群机器人 URL + 签名
+        └── app      企业应用凭据 + 投递目标
+```
+
+**触发策略**：
+
+| frequency | 行为 |
+|-----------|------|
+| `manual` | 仅手动刷新成功后推送 |
+| `1m` ~ `60m` | 前端 `useNotificationSchedule` 定时调用 push |
+| `daily_close` | 预留（每日收盘汇总） |
+
+**持久化**：设置页保存时同步到 localStorage 与服务端 MongoDB（按 `user_id` 隔离）。
+
+**推送内容**：持仓汇总、各账户收益、Top 涨跌基金；飞书支持交互卡片。
+
+### 7.9 账户图标模块 (`AccountIcon`)
 
 根据账户名称正则匹配平台图标：
 
@@ -486,7 +594,7 @@ proxy: {
 
 ## 8. 数据模型
 
-### 8.1 PortfolioSnapshot（WebSocket 推送主体）
+### 8.1 PortfolioSnapshot（持仓 API 响应主体）
 
 ```typescript
 interface PortfolioSnapshot {
@@ -621,7 +729,7 @@ POST /api/auth/logout
 ```
 
 **响应**：`{ "ok": true }`  
-**副作用**：清空 Token，WebSocket 广播 `auth_required`
+**副作用**：清空 Token
 
 #### 创建登录二维码
 
@@ -672,9 +780,8 @@ GET /api/auth/qrcode/{qr_id}/status
 GET /api/portfolio
 ```
 
-- 优先返回 Poller 缓存 `latest`
-- 缓存为空时实时拉取养基宝（需登录）
-- 响应体为 `PortfolioSnapshot`
+- 实时拉取养基宝并组装 `PortfolioSnapshot`（需登录）
+- 无服务端缓存，每次请求均访问上游
 
 ---
 
@@ -762,8 +869,7 @@ Content-Type: application/json
 }
 ```
 
-**响应**：`{ "ok": true, "data": ... }`  
-**副作用**：异步触发 `poll_once()` 刷新快照
+**响应**：`{ "ok": true, "data": ... }`
 
 #### 删除持仓
 
@@ -771,12 +877,117 @@ Content-Type: application/json
 DELETE /api/funds/hold?account_id=1&fund_ids[]=100&fund_ids[]=101
 ```
 
-**响应**：`{ "ok": true, "data": ... }`  
-**副作用**：异步触发 `poll_once()` 刷新快照
+**响应**：`{ "ok": true, "data": ... }`
 
 ---
 
-### 9.7 通用错误码
+### 9.7 通知推送
+
+#### 读取 / 保存配置
+
+```
+GET /api/notify/config
+PUT /api/notify/config
+```
+
+持久化到 MongoDB `notification_configs` 集合，请求体/响应为 `{ "config": NotificationConfig | null }`。
+
+#### 拉取投递目标
+
+```
+POST /api/notify/delivery-targets/{channel}
+```
+
+`channel`：`dingtalk` | `feishu` | `wecom`。根据企业应用凭据返回可投递群聊列表。
+
+#### 创建飞书通知群
+
+```
+POST /api/notify/feishu/create-notification-group
+```
+
+为当前用户创建「你 + 机器人」专属群，返回 `chatId` 供应用 IM 投递。
+
+#### 连通性测试
+
+```
+POST /api/notify/test
+```
+
+请求体：`{ "channel": "feishu", "config": NotificationConfig }`  
+发送测试消息（含当前持仓快照，拉取失败则发占位文案）。
+
+#### 推送持仓收益
+
+```
+POST /api/notify/push
+```
+
+按已保存配置向各启用渠道推送；响应 `status`：`success` | `partial` | `error` | `skipped`。
+
+---
+
+### 9.8 市场数据
+
+#### 基金排行筛选项
+
+```
+GET /api/market/rank/options
+```
+
+#### 基金排行
+
+```
+GET /api/market/rank?dimension=day&scope=open&page=1&page_size=20
+```
+
+| 参数 | 说明 |
+|------|------|
+| `dimension` | `day` / `week1` / `month1` … / `estimate_rate` |
+| `scope` | `open`（全部开放式）/ `index`（指数型） |
+| `fund_type` | 基金类型，默认「全部」 |
+| `board` | 指数板块 |
+| `sector` | 主题板块 |
+| `search` | 代码或名称关键词 |
+| `order` | `asc` / `desc` |
+
+#### 热力图
+
+```
+GET /api/market/heatmap/options
+GET /api/market/heatmap?kind=sector_change&board_type=industry
+```
+
+| 参数 | 说明 |
+|------|------|
+| `kind` | `sector_change` / `fund_flow` |
+| `board_type` | `industry` / `concept` |
+| `indicator` | 资金流向时：`今日` / `5日` / `10日` |
+
+#### 基金收益曲线
+
+```
+GET /api/market/fund/{code}/curve/options
+GET /api/market/fund/{code}/curve?indicator=累计收益率走势&period=1年
+```
+
+#### 板块关联基金
+
+```
+GET /api/market/sector/funds?sector=白酒&board_type=industry&limit=50
+```
+
+#### 对比叠加曲线
+
+```
+GET /api/market/curve/overlays?period=1年&sector_name=白酒
+```
+
+返回板块、上证指数、创业板指同期走势，供 `SeriesLineChart` 对比展示。
+
+---
+
+### 9.9 通用错误码
 
 | HTTP | 场景 |
 |------|------|
@@ -786,69 +997,69 @@ DELETE /api/funds/hold?account_id=1&fund_ids[]=100&fund_ids[]=101
 
 ---
 
-## 10. WebSocket 协议
+## 10. 数据刷新与通知推送
 
-### 10.1 连接
+### 10.1 持仓数据拉取
 
-```
-WS /ws
-```
+本项目**不使用 WebSocket**，持仓数据由前端按需 REST 拉取：
 
-开发环境：`ws://localhost:3000/ws`（经 Rsbuild 代理到 8000）
+| 时机 | 行为 |
+|------|------|
+| Dashboard 挂载 | `usePortfolio` 自动 `GET /api/portfolio` |
+| 点击刷新 | 再次 `GET /api/portfolio`，全屏 loading |
+| 增删基金后 | 需用户手动刷新 |
 
-### 10.2 连接建立 — 服务端首条消息
+快照中的 `trading` 字段标识当前是否交易时段，供收益曲线与通知策略使用。
 
-| 条件 | 首条消息 |
-|------|----------|
-| 已登录 + 有缓存快照 | `{ type: "portfolio_update", data: PortfolioSnapshot }` |
-| 已登录 + 无缓存 | `{ type: "auth_ok", data: { nickname, avatar } }` |
-| 未登录 | `{ type: "auth_required" }` |
-
-### 10.3 消息类型
+### 10.2 通知推送流程
 
 ```typescript
-type WsMessage =
-  | { type: 'portfolio_update'; data: PortfolioSnapshot }
-  | { type: 'auth_required' }
-  | { type: 'auth_ok'; data: { nickname?: string; avatar?: string } }
-  | { type: 'error'; message: string };
+// 手动刷新后（frequency === 'manual'）
+tryPushAfterRefresh({ trading: snapshot.trading })
+
+// 定时推送（1m ~ 60m）
+useNotificationSchedule → tryScheduledPush() → POST /api/notify/push
 ```
 
-### 10.4 广播触发时机
+推送前若 `trigger.tradingHoursOnly === true` 且 `trading === false`，跳过推送。
 
-| 事件 | 消息 |
-|------|------|
-| Poller `poll_once` 成功 | `portfolio_update` |
-| 扫码登录成功 | `auth_ok`（REST 轮询路径） |
-| 登出 / Token 失效 | `auth_required` |
-| 拉取失败 | `error` |
+### 10.3 401 与登录失效
 
-### 10.5 客户端行为
-
-- 连接后仅 `receive_text()` 保活，**不发送业务消息**
-- 断线后 3 秒自动重连
-- 收到 `auth_required` → 跳转 `/login`
+- REST 返回 401 → 前端跳转 `/login`
+- Poller 拉取时 401 → 清空 MongoDB 中的 auth 文档
 
 ---
 
-## 11. 养基宝上游 API 映射
+## 11. 养基宝与东财数据映射
 
-本服务作为 BFF，将以下养基宝接口封装为本地 API：
+### 11.1 养基宝 API（持仓 / 登录）
 
 | 养基宝 Path | 本服务封装 | 需 Token |
 |-------------|------------|----------|
 | `GET /qr_code` | `POST /api/auth/qrcode` | 否 |
 | `GET /qr_code_state/{id}` | `GET /api/auth/qrcode/{id}/status` | 否 |
 | `GET /user_account` | `GET /api/accounts` | 是 |
-| `GET /account_collect` | Poller / `GET /api/portfolio` | 是 |
-| `GET /fund_hold` | Poller（按 account_id） | 是 |
-| `GET /index_data` | Poller | 否 |
+| `GET /account_collect` | `GET /api/portfolio` | 是 |
+| `GET /fund_hold` | `GET /api/portfolio`（按 account_id） | 是 |
+| `GET /index_data` | `GET /api/portfolio` | 是 |
 | `GET /search_fund` | `GET /api/funds/search` | 是 |
 | `POST /fund_hold` | `POST /api/funds/hold` | 是 |
 | `DELETE /remove_fund_hold` | `DELETE /api/funds/hold` | 是 |
 | `GET /income_line_data` | `GET /api/income/line` / `lines` | 是 |
 
 详细字段说明见 [API_README.md](./API_README.md)。
+
+### 11.2 东财 / AKShare（市场数据）
+
+| 功能 | 本服务 API | 数据来源 |
+|------|------------|----------|
+| 基金排行 | `GET /api/market/rank` | AKShare → 东财开放式基金 |
+| 板块热力图 | `GET /api/market/heatmap` | AKShare → 东财板块 |
+| 基金曲线 | `GET /api/market/fund/{code}/curve` | 天天基金 / 东财 |
+| 板块基金 | `GET /api/market/sector/funds` | 东财板块成分 |
+| 对比曲线 | `GET /api/market/curve/overlays` | 板块 + 上证 + 创业板指 |
+
+`market/network.py` 在 import 时配置东财域名直连，避免 Clash / Cursor 代理导致 `ProxyError`。
 
 ---
 
@@ -862,23 +1073,25 @@ flowchart TB
         Browser["浏览器"]
     end
 
-    subgraph Frontend["前端 React :3000"]
+    subgraph Frontend["前端 React :3000 / :8080"]
         App["App + Router"]
         Login["Login 页"]
         Dashboard["Dashboard 页"]
-        WS_Hook["useWebSocket"]
+        Market["MarketRanking / Heatmap"]
+        Portfolio_Hook["usePortfolio"]
         Income_Hook["useIncomeLines"]
+        Notify_Hook["useNotificationSchedule"]
         API_Client["api/client.ts"]
     end
 
-    subgraph Backend["后端 FastAPI :8000"]
+    subgraph Backend["后端 FastAPI"]
         REST["REST /api/*"]
-        WS_EP["WebSocket /ws"]
-        Poller["PortfolioPoller"]
+        MarketSvc["market/* AKShare"]
+        NotifySvc["notify/* 推送"]
         Auth["AuthStore"]
         Calc["calculator"]
         YJB_Client["YjbClient"]
-        BC["Broadcaster"]
+        Poller["PortfolioPoller"]
     end
 
     subgraph YJB["养基宝 API"]
@@ -890,24 +1103,35 @@ flowchart TB
         Y6["/search_fund"]
     end
 
+    subgraph EM["东财 / AKShare"]
+        E1["基金排行"]
+        E2["板块热力图"]
+        E3["基金曲线"]
+    end
+
     Browser --> App
     App --> Login
     App --> Dashboard
-    Dashboard --> WS_Hook
+    App --> Market
+    Dashboard --> Portfolio_Hook
     Dashboard --> Income_Hook
+    Dashboard --> Notify_Hook
     Login --> API_Client
     Income_Hook --> API_Client
-    WS_Hook <-->|"WS 实时推送"| WS_EP
+    Market --> API_Client
+    Notify_Hook --> API_Client
 
     API_Client --> REST
     REST --> YJB_Client
+    REST --> MarketSvc
+    REST --> NotifySvc
+    REST --> Poller
     Poller --> YJB_Client
     YJB_Client --> Y1 & Y2 & Y3 & Y4 & Y5 & Y6
     Y1 & Y2 & Y3 --> Calc --> Poller
-    Poller --> BC --> WS_EP
+    MarketSvc --> E1 & E2 & E3
     Auth --> YJB_Client
     REST --> Auth
-    REST --> Poller
 ```
 
 ### 12.2 微信扫码登录流程
@@ -940,72 +1164,56 @@ sequenceDiagram
 
         Note over U,Y: 用户微信扫码并确认
         Y-->>B: state=2, token
-        B->>B: AuthStore.save(token.json)
-        B->>B: poll_once() 拉取首屏数据
+        B->>B: AuthStore.save → MongoDB
         B-->>F: { state: "2", nickname }
         F->>U: 登录成功，跳转 Dashboard
+        F->>B: GET /api/portfolio
+        B-->>F: PortfolioSnapshot
     end
 ```
 
-### 12.3 实时数据轮询流程
+### 12.3 持仓刷新流程
 
 ```mermaid
 flowchart TD
-    Start([Poller 启动]) --> Loop{循环}
-    Loop --> CheckAuth{Token 有效?}
-    CheckAuth -->|否| SleepIdle1[sleep 60s]
-    SleepIdle1 --> Loop
+    A[用户打开 Dashboard] --> B[usePortfolio 自动 GET /api/portfolio]
+    B --> C{Token 有效?}
+    C -->|否| D[跳转 /login]
+    C -->|是| E[PortfolioPoller.fetch_snapshot]
+    E --> F["并行 get_collect + get_index"]
+    F --> G[逐账户 get_funds]
+    G --> H[build_portfolio_snapshot]
+    H --> I[渲染 Dashboard]
 
-    CheckAuth -->|是| CheckTrading{交易时段?}
-    CheckTrading -->|是| Fetch["fetch_snapshot()"]
-    Fetch --> F1["并行: get_collect + get_index"]
-    F1 --> F2["逐账户 get_funds"]
-    F2 --> F3["build_portfolio_snapshot"]
-    F3 --> F4["附加 updated_at / user / trading"]
-    F4 --> Broadcast["broadcast portfolio_update"]
-    Broadcast --> Sleep30[sleep 30s]
-    Sleep30 --> Loop
-
-    CheckTrading -->|否| SleepIdle2["sleep 60s<br/>不请求养基宝"]
-    SleepIdle2 --> Loop
-
-    subgraph 例外
-        E1["服务启动 / 登录成功 / 增删持仓"] --> PollOnce["poll_once() 立即执行"]
-        PollOnce --> Fetch
-    end
+    J[用户点击刷新] --> E
+    E --> K{通知 frequency=manual?}
+    K -->|是| L[POST /api/notify/push]
+    K -->|否| I
+    L --> I
 ```
 
-### 12.4 WebSocket 生命周期
+### 12.4 通知推送流程
 
 ```mermaid
-sequenceDiagram
-    participant F as 前端 useWebSocket
-    participant B as 后端 /ws
-    participant BC as Broadcaster
-    participant P as Poller
-
-    F->>B: WebSocket 连接
-    B->>BC: connect(ws)
-
-    alt 已登录且有缓存
-        B->>F: portfolio_update (latest)
-    else 已登录无缓存
-        B->>F: auth_ok
-    else 未登录
-        B->>F: auth_required
+flowchart TD
+    subgraph 配置
+        S1[SettingsModal 保存] --> S2[localStorage + PUT /api/notify/config]
     end
 
-    loop 保活
-        F->>B: receive_text (ping)
+    subgraph 手动触发
+        M1[Dashboard 刷新成功] --> M2{enabled && manual?}
+        M2 -->|是| Push
     end
 
-    P->>BC: broadcast(portfolio_update)
-    BC->>F: portfolio_update
+    subgraph 定时触发
+        T1[useNotificationSchedule] --> T2[setInterval 1m~60m]
+        T2 --> Push
+    end
 
-    Note over F,B: 断线后 3s 重连
-
-    F->>B: 关闭连接
-    B->>BC: disconnect(ws)
+    Push[POST /api/notify/push] --> P1[读取 notification-config.json]
+    P1 --> P2[fetch_snapshot 拉取持仓]
+    P2 --> P3[template 渲染消息]
+    P3 --> P4[钉钉 / 飞书 / 企业微信]
 ```
 
 ### 12.5 收益曲线拉取流程
@@ -1051,16 +1259,14 @@ flowchart TD
         A1 --> A2["选择分组 + 份额 + 成本"]
         A2 --> A3["POST /api/funds/hold"]
         A3 --> A4["养基宝 POST /fund_hold"]
-        A4 --> A5["poll_once 刷新"]
-        A5 --> A6["WS portfolio_update"]
+        A4 --> A5["用户手动刷新"]
     end
 
     subgraph 删除
         D1["FundTable 点击删除"] --> D2["Modal 二次确认"]
         D2 --> D3["DELETE /api/funds/hold"]
         D3 --> D4["养基宝 DELETE /remove_fund_hold"]
-        D4 --> D5["poll_once 刷新"]
-        D5 --> D6["WS portfolio_update"]
+        D4 --> D5["用户手动刷新"]
     end
 ```
 
@@ -1075,54 +1281,44 @@ flowchart TD
     E --> F[Dashboard]
     B -->|是| F
 
-    F --> G[WebSocket 连接]
-    G --> H[接收 portfolio_update]
-    H --> I[查看大盘指数]
-    H --> J[查看汇总卡片]
-    H --> K[持仓面板]
+    F --> G[GET /api/portfolio 加载持仓]
+    G --> H[查看大盘指数 / 汇总 / 持仓面板]
 
     K --> L{操作}
     L --> M[切换账户 Tab]
     L --> N[查看收益曲线]
     L --> O[搜索基金并添加]
     L --> P[删除持仓]
-    L --> Q[退出登录]
+    L --> Q[市场排行 / 板块热力图]
+    L --> R[设置通知渠道]
+    L --> S[手动刷新 + 可选推送]
+    L --> T[退出登录]
 
-    Q --> R[POST /api/auth/logout]
-    R --> S[跳转 /login]
+    T --> U[POST /api/auth/logout]
+    U --> V[跳转 /login]
 
     subgraph 认证失效
-        T[Token 过期] --> U[WS auth_required 或 API 401]
-        U --> C
+        W[Token 过期] --> X[API 401]
+        X --> C
     end
 ```
 
-### 12.8 交易时段状态机
+### 12.8 交易时段标识
 
 ```mermaid
 stateDiagram-v2
-    [*] --> 检查登录
-    检查登录 --> 休眠60s: 未登录
-    休眠60s --> 检查登录
+    [*] --> 计算时段
+    计算时段 --> 交易时段: 周一至周五 09:30-11:31 或 13:30-15:01
+    计算时段 --> 非交易时段: 其余时间 / 周末
 
-    检查登录 --> 检查时段: 已登录
-    检查时段 --> 拉取数据: 交易时段
-    拉取数据 --> 广播WS: 成功
-    广播WS --> 等待30s
-    等待30s --> 检查登录
-
-    检查时段 --> 休眠60s_2: 非交易时段
-    休眠60s_2 --> 检查登录
-
-    note right of 拉取数据
-        周一至周五
-        09:30-11:31
-        13:30-15:01
+    note right of 交易时段
+        snapshot.trading = true
+        收益曲线可随 refreshKey 刷新
     end note
 
-    note right of 休眠60s_2
-        不请求养基宝 API
-        仅等待进入交易时段
+    note right of 非交易时段
+        snapshot.trading = false
+        通知可因 tradingHoursOnly 跳过
     end note
 ```
 
@@ -1134,23 +1330,30 @@ stateDiagram-v2
 
 | 环境变量 | 默认值 | 说明 |
 |----------|--------|------|
-| `APP_NAME` | `YJB Realtime Monitor` | FastAPI 标题 |
+| `APP_NAME` | `Fund Helper` | FastAPI 标题 |
 | `API_HOST` | `0.0.0.0` | 文档用途，实际由 uvicorn 参数指定 |
-| `API_PORT` | `8000` | 文档用途 |
-| `POLL_INTERVAL` | `30` | 交易时段轮询间隔（秒） |
-| `IDLE_CHECK_INTERVAL` | `60` | 非交易时段唤醒间隔（秒） |
-| `CORS_ORIGINS` | `["http://localhost:3000", ...]` | CORS 白名单 |
+| `API_PORT` | `8000` | 监听端口（Docker 默认 `8080`） |
+| `POLL_INTERVAL` | `30` | 保留配置项（当前无后台轮询） |
+| `IDLE_CHECK_INTERVAL` | `60` | 保留配置项（当前无后台轮询） |
+| `CORS_ORIGINS` | `["http://localhost:3000", ...]` | CORS 白名单；支持 JSON 数组或逗号分隔 |
+| `PUBLIC_BASE_URL` | `http://localhost:8000` | OAuth 回调基址（飞书/钉钉应用后台需一致） |
+| `FRONTEND_BASE_URL` | `http://localhost:3000` | 前端基址 |
+| `SERVE_STATIC` | `false` | Docker 生产模式设为 `true`，后端托管前端 |
+| `STATIC_DIR` | `<project>/frontend/dist` | 静态资源目录 |
 | `YJB_BASE_URL` | `http://browser-plug-api.yangjibao.com` | 养基宝 API 地址 |
-| `YJB_API_SECRET` | `YxmKSrQR4uoJ5lOoWIhcbd7SlUEh9OOc` | MD5 签名密钥 |
-| `DATA_DIR` | `<project>/data` | Token 存储目录 |
+| `YJB_API_SECRET` | （内置） | MD5 签名密钥 |
+| `MONGODB_URI` | `mongodb://localhost:27017` | MongoDB 连接串 |
+| `MONGODB_DB` | `fund_helper` | 数据库名 |
 
-**示例 `.env`**：
+**示例 `.env`（本地开发）**：
 
 ```env
-POLL_INTERVAL=30
-IDLE_CHECK_INTERVAL=60
 CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
+PUBLIC_BASE_URL=http://localhost:8000
+FRONTEND_BASE_URL=http://localhost:3000
 ```
+
+**Docker 示例**见 [.env.docker.example](./.env.docker.example)。
 
 ---
 
@@ -1187,18 +1390,38 @@ chmod +x start.sh
 ./start.sh frontend # 仅前端
 ```
 
-### 14.3 生产构建
+### 14.3 Docker 部署（推荐）
+
+多阶段 `Dockerfile`：Node 构建前端 → Python 3.12 运行时。
+
+```bash
+docker compose up -d --build
+docker compose ps
+docker compose logs -f
+```
+
+| 项 | 值 |
+|----|-----|
+| 镜像 | `fund-helper:latest` |
+| 容器 | `fund-helper` + `fund-helper-mongo` |
+| 端口 | `8080`（API + 静态前端） |
+| 数据卷 | `mongo_data`（MongoDB 持久化） |
+| 健康检查 | `GET /api/health`（含 MongoDB ping） |
+
+容器内默认 `SERVE_STATIC=true`，访问 http://localhost:8080 即可。登录态与通知配置保存在 MongoDB。
+
+### 14.4 生产构建
 
 ```bash
 cd frontend
 pnpm build          # 产物在 frontend/dist/
 ```
 
-生产环境需将 `dist/` 静态文件与 FastAPI 同域部署，或配置 Nginx 反代 `/api` 与 `/ws` 到后端。
+生产环境需将 `dist/` 静态文件与 FastAPI 同域部署（或设置 `SERVE_STATIC=true`），配置 Nginx 反代 `/api` 到后端。
 
-### 14.4 依赖清单
+### 14.5 依赖清单
 
-**后端** (`requirements.txt`)：fastapi, uvicorn, httpx, pydantic-settings, qrcode, pillow
+**后端** (`requirements.txt`)：fastapi, uvicorn, httpx, pydantic-settings, qrcode, pillow, motor, akshare
 
 **前端** (`package.json`)：react, antd, react-router-dom, @rsbuild/*, sass
 
@@ -1208,14 +1431,15 @@ pnpm build          # 产物在 frontend/dist/
 
 | 场景 | 后端行为 | 前端行为 |
 |------|----------|----------|
-| Token 失效 | 清空 `token.json`，返回 401 或 WS `auth_required` | 跳转 `/login` |
+| Token 失效 | 删除 MongoDB auth 文档，返回 401 | 跳转 `/login` |
 | 养基宝 429 | 返回 502「请求频繁」 | 显示错误 Alert |
-| 养基宝网络失败 | WS `error` 或 REST 502 | 显示错误，WS 3s 重连 |
-| 非交易时段 | Poller 不拉取，快照 `trading=false` | 收益曲线不重复刷新 |
+| 养基宝网络失败 | REST 502 | 显示错误，可重试刷新 |
+| 非交易时段 | 快照 `trading=false` | 收益曲线不重复刷新；通知可跳过 |
+| 东财代理失败 | 市场 API 502 | 排行/热力图页显示错误 |
 | 头像 CDN 失败 | `/api/auth/avatar` 502 | 回退显示昵称首字 Avatar |
 | 二维码过期 | 养基宝 state=3 | 前端 4 分钟超时 + 刷新按钮 |
-| WebSocket 断线 | — | 3 秒自动重连，Badge 显示「重连中」 |
-| 增删持仓后 | 异步 `poll_once()` | 等待 WS 推送更新 |
+| 增删持仓后 | — | 需用户手动刷新 |
+| 通知未配置 | push 返回 `skipped` | 设置页引导配置 |
 
 ---
 
@@ -1225,22 +1449,26 @@ pnpm build          # 产物在 frontend/dist/
 
 | 决策 | 理由 |
 |------|------|
-| BFF 层代理养基宝 | 隐藏签名逻辑与 Token，统一数据格式，支持 WebSocket 推送 |
-| WebSocket 推送 + REST 补充 | 持仓高频更新走 WS；曲线、搜索等低频走 REST |
-| 交易时段节流 | 避免非交易时间无效 API 调用 |
+| BFF 层代理养基宝 | 隐藏签名逻辑与 Token，统一数据格式 |
+| REST 按需拉取 | 简化架构，避免 WebSocket 连接维护；用户可控刷新频率 |
+| 市场数据独立模块 | AKShare/东财公开数据，与养基宝持仓解耦 |
+| 通知配置双写 | localStorage 供前端定时器读取，服务端 JSON 供 push API 使用 |
+| 东财直连 patch | 开发环境 Clash/Cursor 代理常导致 AKShare 失败 |
 | 自研 SVG 曲线 | 轻量、可控，避免引入 ECharts 等大包 |
 | 头像后端代理 | 养基宝 CDN 浏览器直连易失败 |
+| Docker 单容器 | 降低部署门槛，静态资源由 FastAPI 托管 |
 | `account_ids[]` 拉分组曲线 | 实测养基宝 `account_id+collect=false` 仍返回 collect |
-| 无全局状态库 | 数据流简单，WebSocket 单数据源足够 |
+| 无全局状态库 | 数据流简单，REST + 本地 state 足够 |
 
 ### 16.2 已知限制
 
-1. **单用户**：Token 存本地文件，不支持多用户并发登录。
-2. **交易时段硬编码**：未对接养基宝节假日休市日历。
-3. **收益曲线非实时**：由前端按需 REST 拉取，非 WebSocket 推送。
-4. **基金添加份额**：需用户手动填写，无自动同步券商持仓。
-5. **API_SECRET 硬编码**：与插件相同，存于配置文件（养基宝公开密钥）。
-6. **下午开盘时间**：本项目用 13:30，与 API 文档部分描述 13:00 略有差异。
+1. **用户识别**：同一养基宝账号以「昵称 + 头像」hash 识别，极端情况下可能撞车。
+2. **无自动刷新**：持仓不会后台定时更新，需手动刷新或重新进入页面。
+3. **交易时段硬编码**：未对接养基宝节假日休市日历。
+4. **收益曲线非实时**：由前端按需 REST 拉取。
+5. **基金添加份额**：需用户手动填写，无自动同步券商持仓。
+6. **市场数据依赖第三方**：AKShare/东财接口可能变更或限流。
+7. **下午开盘时间**：本项目用 13:30，与 API 文档部分描述 13:00 略有差异。
 
 ### 16.3 相关文档
 
@@ -1251,4 +1479,4 @@ pnpm build          # 产物在 frontend/dist/
 
 ---
 
-*文档版本：2026-06-12 · 与项目代码同步*
+*文档版本：2026-06-13 · 与项目代码同步*

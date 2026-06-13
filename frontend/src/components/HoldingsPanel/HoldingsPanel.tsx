@@ -12,14 +12,16 @@ const ALL_TAB = "all";
 interface HoldingsPanelProps {
   accounts: AccountItem[];
   updatedAt?: string;
-  onAuthRequired?: () => void;
+  onYjbRequired?: () => void;
+  onAppAuthRequired?: () => void;
   onRefresh?: () => void;
 }
 
 export function HoldingsPanel({
   accounts,
   updatedAt,
-  onAuthRequired,
+  onYjbRequired,
+  onAppAuthRequired,
   onRefresh,
 }: HoldingsPanelProps) {
   const [activeTab, setActiveTab] = useState<string>(ALL_TAB);
@@ -71,7 +73,8 @@ export function HoldingsPanel({
           <FundSearch
             compact
             accounts={accounts}
-            onAuthRequired={onAuthRequired}
+            onYjbRequired={onYjbRequired}
+            onAppAuthRequired={onAppAuthRequired}
             onRefresh={onRefresh}
           />
         }
@@ -122,7 +125,8 @@ export function HoldingsPanel({
               <FundTable
                 funds={activeAccount.funds}
                 updatedAt={updatedAt}
-                onAuthRequired={onAuthRequired}
+                onYjbRequired={onYjbRequired}
+                onAppAuthRequired={onAppAuthRequired}
                 onRefresh={onRefresh}
                 embedded
               />

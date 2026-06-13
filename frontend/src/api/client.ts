@@ -1,3 +1,4 @@
+import type { AdminUserItem, AuthStatus, YjbQrStatusResponse } from '@/types/auth';
 import type {
   CurveOverlaysResponse,
   FundCurveIndicator,
@@ -17,11 +18,8 @@ import type {
 import type {
   AccountListResponse,
   AddFundItemPayload,
-  AuthStatus,
   IncomeLineData,
   PortfolioSnapshot,
-  QrCodeResponse,
-  QrStatusResponse,
   SearchFundItem,
 } from '@/types/portfolio';
 import type { ConnectivityTestResult } from '@/utils/notificationConnectivity';
@@ -29,41 +27,81 @@ import type { NotificationConfig, NotifyChannel } from '@/utils/notificationSett
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...init?.headers },
     ...init,
   });
 
   if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || response.statusText);
+    const text = await response.text();
+    let message = text || response.statusText;
+    try {
+      const json = JSON.parse(text) as { detail?: unknown };
+      if (typeof json.detail === 'string') {
+        message = json.detail;
+      }
+    } catch {
+      // keep raw text
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json() as Promise<T>;
 }
 
 export const api = {
+  login: (username: string, password: string) =>
+    request<{ ok: boolean; username: string; role: string }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
   getAuthStatus: () => request<AuthStatus>('/api/auth/status'),
   logout: () => request<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
-  createQrcode: () =>
-    request<QrCodeResponse>('/api/auth/qrcode', { method: 'POST' }),
-  getQrcodeStatus: (id: string) =>
-    request<QrStatusResponse>(`/api/auth/qrcode/${id}/status`),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: boolean }>('/api/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    }),
+  createYjbQrcode: () =>
+    request<{ id: string; url: string; image_base64: string }>('/api/auth/yjb/qrcode', {
+      method: 'POST',
+    }),
+  getYjbQrcodeStatus: (id: string) =>
+    request<YjbQrStatusResponse>(`/api/auth/yjb/qrcode/${id}/status`),
+  listAdminUsers: () => request<{ items: AdminUserItem[] }>('/api/admin/users'),
+  createAdminUser: (payload: { username: string; password: string }) =>
+    request<AdminUserItem>('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateAdminUser: (
+    userId: string,
+    payload: { password?: string; role?: string; is_active?: boolean },
+  ) =>
+    request<AdminUserItem>(`/api/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminUser: (userId: string) =>
+    request<{ ok: boolean }>(`/api/admin/users/${userId}`, { method: 'DELETE' }),
   getPortfolio: () => request<PortfolioSnapshot>('/api/portfolio'),
   getAccounts: () => request<AccountListResponse>('/api/accounts'),
-  /** 汇总曲线：collect=true */
   getCollectIncomeLine: () =>
     request<IncomeLineData>('/api/income/line?collect=true'),
-  /** 各账户独立曲线：account_ids[] */
   getAccountIncomeLines: (accountIds: number[]) => {
     const params = new URLSearchParams();
     for (const id of accountIds) {
       params.append('account_ids[]', String(id));
     }
-    return request<Record<string, IncomeLineData>>(
-      `/api/income/lines?${params}`,
-    );
+    return request<Record<string, IncomeLineData>>(`/api/income/lines?${params}`);
   },
-  /** 单账户曲线（内部仍走 account_ids[]） */
   getIncomeLine: (options?: { accountId?: number; collect?: boolean }) => {
     if (options?.collect) {
       return request<IncomeLineData>('/api/income/line?collect=true');
@@ -209,3 +247,11 @@ export const api = {
     return request<CurveOverlaysResponse>(`/api/market/curve/overlays?${params}`);
   },
 };
+
+export function isYjbAuthError(message: string): boolean {
+  return message === 'yjb_not_bound' || message === 'yjb_token_expired';
+}
+
+export function isAppAuthError(message: string): boolean {
+  return message === '未登录' || message.includes('Not authenticated');
+}

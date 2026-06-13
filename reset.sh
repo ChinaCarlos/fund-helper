@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# 清除运行时数据与依赖，恢复到可全新安装的状态
+# 清除依赖与 Docker 数据卷，恢复到可全新安装的状态
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 echo "==> 停止占用端口的进程（如有）..."
-for port in 8000 3000; do
+for port in 8000 3000 8080; do
   pids="$(lsof -ti :"$port" 2>/dev/null || true)"
   if [ -n "$pids" ]; then
     echo "    结束端口 $port: $pids"
@@ -14,9 +14,10 @@ for port in 8000 3000; do
   fi
 done
 
-echo "==> 清除 data/ 运行时数据..."
-rm -f "$ROOT/data/"*.json
-touch "$ROOT/data/.gitkeep"
+echo "==> 停止 Docker 容器并清除 MongoDB 数据卷（dev + full）..."
+if command -v docker &>/dev/null; then
+  (cd "$ROOT" && docker compose --profile dev --profile full down -v 2>/dev/null) || true
+fi
 
 echo "==> 清除后端虚拟环境..."
 rm -rf "$ROOT/backend/.venv"
@@ -30,6 +31,6 @@ echo ""
 echo "✅ 清理完成。请执行全新安装："
 echo ""
 echo "  cd $ROOT"
-echo "  ./start.sh          # 在系统终端 (Terminal.app) 中运行"
+echo "  docker compose --profile full up -d --build   # Docker 一体部署"
+echo "  ./dev-infra.sh && ./start.sh                  # 本地开发"
 echo ""
-echo "首次会重新安装 uv 依赖与 pnpm 包，浏览器打开 http://localhost:3000 后需重新扫码登录。"

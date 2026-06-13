@@ -1,16 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  AppstoreOutlined,
-  LogoutOutlined,
-  ReloadOutlined,
-  SettingOutlined,
-  TrophyOutlined,
-} from "@ant-design/icons";
+import { ReloadOutlined } from "@ant-design/icons";
 import {
   Alert,
   App,
-  Avatar,
   Button,
   Col,
   Flex,
@@ -19,30 +12,59 @@ import {
   Spin,
   Typography,
 } from "antd";
+import { AppHeader } from "@/components/AppHeader/AppHeader";
+import { YjbBindPanel } from "@/components/YjbBindPanel/YjbBindPanel";
 import { HoldingsPanel } from "@/components/HoldingsPanel/HoldingsPanel";
 import { IndexBar } from "@/components/IndexBar/IndexBar";
-import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import { SummaryCard } from "@/components/SummaryCard/SummaryCard";
 import { api } from "@/api/client";
 import { useNotificationSchedule } from "@/hooks/useNotificationSchedule";
 import { usePortfolio } from "@/hooks/usePortfolio";
+import type { AuthStatus } from "@/types/auth";
 import { tryPushAfterRefresh } from "@/utils/notificationPush";
+import { PAGE_CONTENT_STYLE } from "@/utils/pageLayout";
 
-const { Header, Content } = Layout;
-const { Title, Text } = Typography;
+const { Content } = Layout;
+const { Text } = Typography;
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { message } = App.useApp();
-  const [avatarError, setAvatarError] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const handleAuthRequired = useCallback(() => {
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [yjbBound, setYjbBound] = useState(false);
+
+  const handleAppAuthRequired = useCallback(() => {
     navigate("/login");
   }, [navigate]);
+
+  const handleYjbRequired = useCallback(() => {
+    setYjbBound(false);
+  }, []);
+
   const { portfolio, loading, refreshing, error, refresh } = usePortfolio({
-    onAuthRequired: handleAuthRequired,
+    enabled: yjbBound,
+    onAppAuthRequired: handleAppAuthRequired,
+    onYjbRequired: handleYjbRequired,
   });
   useNotificationSchedule();
+
+  const loadAuthStatus = useCallback(async () => {
+    setAuthLoading(true);
+    try {
+      const status = await api.getAuthStatus();
+      setAuthStatus(status);
+      setYjbBound(Boolean(status.yjb_bound));
+    } catch {
+      navigate("/login");
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    void loadAuthStatus();
+  }, [loadAuthStatus]);
 
   const handleRefresh = useCallback(async () => {
     const snapshot = await refresh();
@@ -62,46 +84,70 @@ export function Dashboard() {
     }
   }, [message, refresh]);
 
-  useEffect(() => {
-    setAvatarError(false);
-  }, [portfolio?.user?.avatar]);
+  const handleYjbBound = useCallback(async () => {
+    const status = await api.getAuthStatus();
+    setAuthStatus(status);
+    setYjbBound(true);
+    await refresh();
+  }, [refresh]);
 
-  const handleLogout = async () => {
-    await api.logout();
-    navigate("/login");
-  };
+  const headerExtra =
+    yjbBound ? (
+      <Button icon={<ReloadOutlined />} loading={refreshing} onClick={handleRefresh}>
+        刷新持仓
+      </Button>
+    ) : null;
+
+  if (authLoading) {
+    return (
+      <Flex align="center" justify="center" style={{ minHeight: "100vh" }}>
+        <Spin size="large" tip="正在加载..." />
+      </Flex>
+    );
+  }
+
+  const updatedLabel = portfolio?.updated_at
+    ? portfolio.updated_at.replace("T", " ")
+    : "";
+
+  if (!yjbBound) {
+    return (
+      <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
+        <AppHeader />
+        <YjbBindPanel onBound={() => void handleYjbBound()} />
+      </Layout>
+    );
+  }
 
   if (loading && !portfolio) {
     return (
-      <Flex align="center" justify="center" style={{ minHeight: "100vh" }}>
-        <Spin
-          size="large"
-          tip={error ? `加载失败：${error}` : "正在加载数据..."}
-        />
-      </Flex>
+      <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
+        <AppHeader extra={headerExtra} />
+        <Flex align="center" justify="center" style={{ flex: 1, minHeight: 400 }}>
+          <Spin size="large" tip={error ? `加载失败：${error}` : "正在加载数据..."} />
+        </Flex>
+      </Layout>
     );
   }
 
   if (!portfolio) {
     return (
-      <Flex align="center" justify="center" style={{ minHeight: "100vh" }}>
-        <Alert
-          type="error"
-          message={error || "加载失败"}
-          action={
-            <Button size="small" onClick={handleRefresh}>
-              重试
-            </Button>
-          }
-        />
-      </Flex>
+      <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
+        <AppHeader extra={headerExtra} />
+        <Flex align="center" justify="center" style={{ flex: 1, minHeight: 400 }}>
+          <Alert
+            type="error"
+            message={error || "加载失败"}
+            action={
+              <Button size="small" onClick={handleRefresh}>
+                重试
+              </Button>
+            }
+          />
+        </Flex>
+      </Layout>
     );
   }
-
-  const showAvatar = Boolean(portfolio.user?.avatar && !avatarError);
-  const updatedLabel = portfolio.updated_at
-    ? portfolio.updated_at.replace("T", " ")
-    : "";
 
   return (
     <Layout
@@ -127,102 +173,22 @@ export function Dashboard() {
           <Spin size="large" tip="正在刷新数据..." />
         </div>
       ) : null}
-      <Header
-        style={{
-          background: "#fff",
-          color: "#1e293b",
-          borderBottom: "1px solid #eef1f6",
-          padding: "12px 24px",
-          height: "auto",
-          lineHeight: "normal",
-        }}
-      >
-        <Flex
-          align="center"
-          justify="space-between"
-          gap={16}
-          wrap="wrap"
-          style={{ width: "100%" }}
-        >
-          <Flex
-            align="center"
-            gap={12}
-            style={{ minWidth: 0, flex: "1 1 auto" }}
-          >
-            {showAvatar ? (
-              <Avatar
-                size={40}
-                src="/api/auth/avatar"
-                style={{ flexShrink: 0 }}
-                onError={() => {
-                  setAvatarError(true);
-                  return false;
-                }}
-              />
-            ) : (
-              <Avatar
-                size={40}
-                style={{ background: "#fc4e50", flexShrink: 0 }}
-              >
-                {portfolio.user?.nickname?.charAt(0) || "基"}
-              </Avatar>
-            )}
-            <div style={{ minWidth: 0 }}>
-              <Title
-                level={5}
-                style={{ margin: 0, color: "#1e293b", lineHeight: 1.4 }}
-              >
-                养基宝实时监控
-              </Title>
-              <Text style={{ fontSize: 13, color: "#8b95a8", lineHeight: 1.4 }}>
-                {portfolio.user?.nickname || "已登录"}
-                {portfolio.trading ? " · 交易时段" : " · 非交易时段"}
-                {updatedLabel ? ` · 更新 ${updatedLabel}` : ""}
-              </Text>
-            </div>
-          </Flex>
-          <Flex align="center" gap={12} style={{ flexShrink: 0 }}>
-            <Button icon={<TrophyOutlined />} onClick={() => navigate("/market")}>
-              市场排行
-            </Button>
-            <Button icon={<AppstoreOutlined />} onClick={() => navigate("/market/heatmap")}>
-              板块热力图
-            </Button>
-            <Button
-              icon={<SettingOutlined />}
-              onClick={() => setSettingsOpen(true)}
-            >
-              设置
-            </Button>
-            <Button
-              icon={<ReloadOutlined />}
-              loading={refreshing}
-              onClick={handleRefresh}
-            >
-              刷新
-            </Button>
-            <Button icon={<LogoutOutlined />} onClick={handleLogout}>
-              退出登录
-            </Button>
-          </Flex>
-        </Flex>
-      </Header>
+      <AppHeader extra={headerExtra} />
 
       <Content
         style={{
-          maxWidth: 1200,
-          width: "100%",
-          margin: "0 auto",
-          padding: "24px 20px 48px",
+          ...PAGE_CONTENT_STYLE,
+          padding: "24px 32px 48px",
         }}
       >
+        <Text type="secondary" style={{ display: "block", marginBottom: 16, fontSize: 13 }}>
+          {portfolio.user?.nickname || authStatus?.yjb_nickname || authStatus?.username}
+          {portfolio.trading ? " · 交易时段" : " · 非交易时段"}
+          {updatedLabel ? ` · 更新 ${updatedLabel}` : ""}
+        </Text>
+
         {error ? (
-          <Alert
-            type="error"
-            message={error}
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
+          <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />
         ) : null}
 
         <IndexBar indices={portfolio.indices} />
@@ -257,15 +223,11 @@ export function Dashboard() {
         <HoldingsPanel
           accounts={portfolio.accounts}
           updatedAt={portfolio.updated_at}
-          onAuthRequired={handleAuthRequired}
+          onYjbRequired={handleYjbRequired}
+          onAppAuthRequired={handleAppAuthRequired}
           onRefresh={handleRefresh}
         />
       </Content>
-
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
     </Layout>
   );
 }

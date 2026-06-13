@@ -13,6 +13,7 @@ import type {
   FundCurveResponse,
 } from '@/types/market';
 import type { ChartSeriesConfig, SeriesPoint } from '@/utils/heatmap';
+import { formatPercent, trendColor } from '@/utils/format';
 
 const { Text } = Typography;
 
@@ -164,7 +165,13 @@ export function FundCurveModal({
         key: 'change_rate',
         align: 'right',
         render: (value: number | null) =>
-          value == null ? '-' : `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`,
+          value == null ? (
+            '-'
+          ) : (
+            <Text className="mono" style={{ color: trendColor(value), fontWeight: 500 }}>
+              {formatPercent(value)}
+            </Text>
+          ),
       },
     ],
     [navLabel],

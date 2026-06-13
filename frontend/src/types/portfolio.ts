@@ -113,22 +113,3 @@ export interface IncomeLineData {
   points: IncomeLinePoint[];
 }
 
-export interface AuthStatus {
-  logged_in: boolean;
-  nickname?: string;
-  avatar?: string;
-  login_time?: string;
-}
-
-export interface QrCodeResponse {
-  id: string;
-  url: string;
-  image_base64: string;
-}
-
-export interface QrStatusResponse {
-  state: string;
-  nickname?: string;
-  avatar?: string;
-}
-

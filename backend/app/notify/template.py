@@ -149,7 +149,7 @@ def _format_fund_line(fund: dict) -> str:
 def build_portfolio_notification(
     snapshot: dict,
     *,
-    title: str = "养基宝·持仓收益",
+    title: str = "Fund Helper·持仓收益",
     prefix: str = "",
     max_length: int = DEFAULT_MAX_LENGTH,
 ) -> str:
@@ -194,7 +194,7 @@ def build_portfolio_notification(
             lines.append("")
 
     lines.append("——")
-    lines.append("养基宝实时监控")
+    lines.append("Fund Helper")
 
     text = "\n".join(lines).strip()
     if len(text) <= max_length:
@@ -207,7 +207,7 @@ def build_portfolio_notification(
 def build_feishu_interactive_card(
     snapshot: dict,
     *,
-    title: str = "养基宝·持仓收益",
+    title: str = "Fund Helper·持仓收益",
     subtitle: str = "",
 ) -> dict[str, Any]:
     """飞书消息卡片（群机器人 Webhook / 应用 IM 通用结构）。"""
@@ -293,7 +293,7 @@ def build_feishu_interactive_card(
             "elements": [
                 {
                     "tag": "plain_text",
-                    "content": subtitle or "✨ 养基宝实时监控",
+                    "content": subtitle or "✨ Fund Helper",
                 }
             ],
         }
@@ -331,11 +331,11 @@ def build_connectivity_test_message(snapshot: dict | None) -> str:
     if snapshot:
         return build_portfolio_notification(
             snapshot,
-            title="养基宝·连通性测试",
+            title="Fund Helper·连通性测试",
             prefix="[连通性测试] 以下为当前持仓收益快照：",
         )
     return (
-        "【养基宝·连通性测试】\n"
+        "【Fund Helper·连通性测试】\n"
         "你好，这是 fund-helper system message test\n"
         "（未能拉取持仓数据，仅发送占位文案）"
     )
@@ -345,13 +345,13 @@ def build_connectivity_test_card(snapshot: dict | None) -> dict[str, Any]:
     if snapshot:
         return build_feishu_interactive_card(
             snapshot,
-            title="养基宝·连通性测试",
+            title="Fund Helper·连通性测试",
             subtitle="连通性测试 · 收到此卡片表示配置正确",
         )
     return {
         "config": {"wide_screen_mode": True},
         "header": {
-            "title": {"tag": "plain_text", "content": "📊 养基宝·连通性测试"},
+            "title": {"tag": "plain_text", "content": "📊 Fund Helper·连通性测试"},
             "subtitle": {
                 "tag": "plain_text",
                 "content": "收到本卡片表示飞书配置正确",
@@ -382,7 +382,7 @@ def build_connectivity_test_card(snapshot: dict | None) -> dict[str, Any]:
                 "elements": [
                     {
                         "tag": "plain_text",
-                        "content": "养基宝实时监控 · fund-helper",
+                        "content": "Fund Helper",
                     }
                 ],
             },

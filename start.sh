@@ -25,15 +25,86 @@ check_outbound_network() {
   fi
 }
 
+venv_python() {
+  echo "$ROOT/backend/.venv/bin/python"
+}
+
+venv_is_usable() {
+  local py
+  py="$(venv_python)"
+  [ -x "$py" ] && "$py" -c "import uvicorn" 2>/dev/null
+}
+
+ensure_backend_venv() {
+  cd "$ROOT/backend"
+  if [ -d .venv ] && ! venv_is_usable; then
+    echo "==> 检测到虚拟环境已损坏（常见于项目目录迁移），正在重建..."
+    rm -rf .venv
+  fi
+  if [ ! -d .venv ]; then
+    echo "==> 创建虚拟环境..."
+    uv venv
+  fi
+  echo "==> 同步后端依赖..."
+  uv pip install -r requirements.txt -q
+}
+
+mongodb_ping() {
+  cd "$ROOT/backend"
+  local py
+  py="$(venv_python)"
+  "$py" -c "
+from app.config import settings
+import sys
+try:
+    import asyncio
+    from motor.motor_asyncio import AsyncIOMotorClient
+    async def ping():
+        client = AsyncIOMotorClient(settings.mongodb_uri, serverSelectionTimeoutMS=3000)
+        await client.admin.command('ping')
+        client.close()
+    asyncio.run(ping())
+except Exception:
+    sys.exit(1)
+" 2>/dev/null
+}
+
+ensure_mongodb() {
+  if mongodb_ping; then
+    return 0
+  fi
+
+  if command -v docker &>/dev/null; then
+    echo "==> MongoDB 未就绪，尝试启动开发库（docker compose --profile dev up -d mongo-dev）..."
+    (cd "$ROOT" && docker compose --profile dev up -d mongo-dev) || true
+    for _ in $(seq 1 30); do
+      if mongodb_ping; then
+        echo "==> MongoDB 已连接: ${MONGODB_URI:-mongodb://localhost:27017}"
+        return 0
+      fi
+      sleep 1
+    done
+  fi
+
+  echo ""
+  echo "❌ 无法连接 MongoDB（${MONGODB_URI:-mongodb://localhost:27017}）。"
+  echo ""
+  echo "本地开发请先启动项目内的 MongoDB 容器："
+  echo "  ./dev-infra.sh"
+  echo "  或: docker compose --profile dev up -d mongo-dev"
+  echo ""
+  echo "注意：mongodb://mongo:27017 仅适用于 Docker 内的 app 容器，"
+  echo "      本机 ./start.sh 应使用 mongodb://localhost:27017"
+  echo ""
+  exit 1
+}
+
 start_backend() {
   ensure_uv
   check_outbound_network
+  ensure_backend_venv
+  ensure_mongodb
   cd "$ROOT/backend"
-  if [ ! -d .venv ]; then
-    echo "==> 创建虚拟环境并安装后端依赖..."
-    uv venv
-    uv pip install -r requirements.txt
-  fi
   echo "==> 启动后端 http://localhost:8000"
   # 后端拉东财数据需直连，避免 Cursor/Clash 注入的 HTTP 代理导致 ProxyError
   env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \

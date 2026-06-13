@@ -4,6 +4,7 @@ import {
   Alert,
   App,
   Button,
+  Flex,
   Form,
   Input,
   Modal,
@@ -18,13 +19,16 @@ import {
   createDefaultNotificationConfig,
   isChannelActive,
   isChannelConfigured,
-  loadNotificationSettings,
   mergeNotificationConfig,
   NOTIFY_FREQUENCY_OPTIONS,
-  saveNotificationSettings,
   sanitizeNotificationConfig,
   validateNotificationSettings,
 } from '@/utils/notificationSettings';
+import {
+  getNotificationConfig,
+  setNotificationConfig,
+  syncNotificationConfigFromServer,
+} from '@/services/notificationConfig';
 import type { ChannelConnectivityState } from '@/utils/notificationConnectivity';
 import {
   connectivityStatusLabel,
@@ -35,9 +39,8 @@ import './SettingsModal.scss';
 
 const { Text, Link } = Typography;
 
-interface SettingsModalProps {
-  open: boolean;
-  onClose: () => void;
+interface NotificationSettingsPanelProps {
+  onSaved?: () => void;
 }
 
 type PanelKey = 'trigger' | NotifyChannel;
@@ -904,7 +907,7 @@ function TriggerPanel({ masterEnabled }: { masterEnabled: boolean }) {
   );
 }
 
-export function SettingsModal({ open, onClose }: SettingsModalProps) {
+export function NotificationSettingsPanel({ onSaved }: NotificationSettingsPanelProps) {
   const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const [saving, setSaving] = useState(false);
@@ -913,23 +916,17 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const masterEnabled = Form.useWatch('enabled', form);
 
   useEffect(() => {
-    if (!open) return;
-
     let cancelled = false;
     const load = async () => {
-      const local = loadNotificationSettings();
       try {
-        const remote = await api.getNotificationConfig();
+        const merged = disableDeferredAppModes(await syncNotificationConfigFromServer());
         if (!cancelled) {
-          const merged = disableDeferredAppModes(
-            remote.config
-              ? mergeNotificationConfig({ ...local, ...remote.config })
-              : local,
-          );
           form.setFieldsValue(merged);
         }
       } catch {
-        if (!cancelled) form.setFieldsValue(disableDeferredAppModes(local));
+        if (!cancelled) {
+          form.setFieldsValue(disableDeferredAppModes(getNotificationConfig()));
+        }
       }
       if (!cancelled) {
         setActivePanel('trigger');
@@ -941,7 +938,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     return () => {
       cancelled = true;
     };
-  }, [open, form]);
+  }, [form]);
 
   const handleTestConnectivity = useCallback(
     async (channel: NotifyChannel) => {
@@ -986,10 +983,10 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     }
     setSaving(true);
     try {
-      saveNotificationSettings(settings);
       await api.saveNotificationConfig(settings);
-      message.success('通知配置已保存（本地 + 服务端）');
-      onClose();
+      setNotificationConfig(settings);
+      message.success('通知配置已保存');
+      onSaved?.();
     } catch (err) {
       message.error(err instanceof Error ? err.message : '保存到服务端失败');
     } finally {
@@ -998,19 +995,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   };
 
   return (
-    <Modal
-      title="通知设置"
-      open={open}
-      onCancel={onClose}
-      onOk={handleSave}
-      okText="保存"
-      cancelText="取消"
-      confirmLoading={saving}
-      width={720}
-      destroyOnClose
-      className="settings-modal"
-      styles={{ body: { paddingTop: 4 } }}
-    >
+    <div className="notification-settings">
       <Form
         form={form}
         layout="vertical"
@@ -1069,7 +1054,13 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             ))}
           </div>
         </div>
+
+        <Flex justify="flex-end" style={{ marginTop: 16 }}>
+          <Button type="primary" loading={saving} onClick={() => void handleSave()}>
+            保存通知配置
+          </Button>
+        </Flex>
       </Form>
-    </Modal>
+    </div>
   );
 }

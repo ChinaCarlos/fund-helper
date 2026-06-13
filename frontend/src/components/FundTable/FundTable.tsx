@@ -11,7 +11,7 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType, ColumnType } from "antd/es/table";
-import { api } from "@/api/client";
+import { api, isAppAuthError, isYjbAuthError } from "@/api/client";
 import type { FundItem } from "@/types/portfolio";
 import {
   formatMoney,
@@ -34,7 +34,8 @@ const { Text } = Typography;
 interface FundTableProps {
   funds: FundItem[];
   updatedAt?: string;
-  onAuthRequired?: () => void;
+  onYjbRequired?: () => void;
+  onAppAuthRequired?: () => void;
   onRefresh?: () => void;
   embedded?: boolean;
 }
@@ -42,7 +43,8 @@ interface FundTableProps {
 export function FundTable({
   funds,
   updatedAt,
-  onAuthRequired,
+  onYjbRequired,
+  onAppAuthRequired,
   onRefresh,
   embedded = false,
 }: FundTableProps) {
@@ -74,8 +76,12 @@ export function FundTable({
       onRefresh?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : "删除失败";
-      if (message.includes("未登录") || message.includes("401")) {
-        onAuthRequired?.();
+      if (isYjbAuthError(message)) {
+        onYjbRequired?.();
+        return;
+      }
+      if (isAppAuthError(message)) {
+        onAppAuthRequired?.();
         return;
       }
       setError(message);

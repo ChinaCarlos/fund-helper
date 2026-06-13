@@ -5,7 +5,7 @@ import { pluginSass } from '@rsbuild/plugin-sass';
 export default defineConfig({
   plugins: [pluginReact(), pluginSass()],
   html: {
-    title: '养基宝实时监控',
+    title: 'Fund Helper',
   },
   server: {
     port: 3000,

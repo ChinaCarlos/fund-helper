@@ -3,9 +3,6 @@ backend/__pycache__/
 backend/**/__pycache__/
 frontend/node_modules/
 frontend/dist/
-# 运行时数据（Token、通知配置、OAuth 等敏感信息）
-data/*
-!data/.gitkeep
 .DS_Store
 *.pyc
 .env

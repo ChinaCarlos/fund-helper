@@ -1,145 +1,54 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ReloadOutlined } from '@ant-design/icons';
-import { Button, Card, Flex, Spin, Typography } from 'antd';
+import { LockOutlined, UserOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Flex, Form, Input, Typography } from 'antd';
 import { api } from '@/api/client';
+import { syncNotificationConfigFromServer } from '@/services/notificationConfig';
 
-const { Title, Paragraph, Text } = Typography;
-
-type LoginState = 'loading' | 'waiting' | 'scanning' | 'success' | 'expired' | 'error';
+const { Title, Paragraph } = Typography;
 
 export function Login() {
   const navigate = useNavigate();
-  const [qrImage, setQrImage] = useState<string | null>(null);
-  const [qrId, setQrId] = useState<string | null>(null);
-  const [status, setStatus] = useState<LoginState>('loading');
-  const [message, setMessage] = useState('正在获取二维码...');
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const expireRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const clearTimers = useCallback(() => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    if (expireRef.current) clearTimeout(expireRef.current);
-    pollRef.current = null;
-    expireRef.current = null;
-  }, []);
-
-  const startLogin = useCallback(async () => {
-    clearTimers();
-    setStatus('loading');
-    setMessage('正在获取二维码...');
-    setQrImage(null);
-
+  const onFinish = async (values: { username: string; password: string }) => {
+    setLoading(true);
+    setError('');
     try {
-      const auth = await api.getAuthStatus();
-      if (auth.logged_in) {
-        navigate('/', { replace: true });
-        return;
-      }
-
-      const qr = await api.createQrcode();
-      setQrId(qr.id);
-      setQrImage(`data:image/png;base64,${qr.image_base64}`);
-      setStatus('waiting');
-      setMessage('请使用微信扫一扫');
-
-      expireRef.current = setTimeout(() => {
-        clearTimers();
-        setStatus('expired');
-        setMessage('二维码已过期，请刷新');
-      }, 240000);
-
-      pollRef.current = setInterval(async () => {
-        if (!qr.id) return;
-        try {
-          const result = await api.getQrcodeStatus(qr.id);
-          if (result.state === '1') {
-            setStatus('scanning');
-            setMessage('已扫码，请在手机上确认登录');
-          } else if (result.state === '2') {
-            clearTimers();
-            setStatus('success');
-            setMessage(`登录成功，欢迎 ${result.nickname || ''}`);
-            setTimeout(() => navigate('/', { replace: true }), 800);
-          } else if (result.state === '3') {
-            clearTimers();
-            setStatus('expired');
-            setMessage('二维码已失效，请刷新');
-          }
-        } catch {
-          setStatus('error');
-          setMessage('登录状态查询失败');
-        }
-      }, 2000);
+      await api.login(values.username, values.password);
+      await syncNotificationConfigFromServer();
+      navigate('/', { replace: true });
     } catch (err) {
-      setStatus('error');
-      setMessage(err instanceof Error ? err.message : '获取二维码失败');
+      setError(err instanceof Error ? err.message : '登录失败');
+    } finally {
+      setLoading(false);
     }
-  }, [clearTimers, navigate]);
-
-  useEffect(() => {
-    startLogin();
-    return clearTimers;
-  }, [startLogin, clearTimers]);
+  };
 
   return (
     <Flex align="center" justify="center" style={{ minHeight: '100vh', padding: 20 }}>
       <Card style={{ width: '100%', maxWidth: 420 }} bordered={false}>
         <Title level={3} style={{ textAlign: 'center', marginBottom: 8 }}>
-          微信扫码登录
+          Fund Helper
         </Title>
-        <Paragraph type="secondary" style={{ textAlign: 'center' }}>
-          Token 失效或未登录时，请使用
-          <Text type="danger"> 微信扫一扫 </Text>
-          完成授权
+        <Paragraph type="secondary" style={{ textAlign: 'center', marginBottom: 24 }}>
+          请使用管理员分配的账号登录
         </Paragraph>
 
-        <Flex
-          align="center"
-          justify="center"
-          style={{
-            width: 240,
-            height: 240,
-            margin: '24px auto',
-            background: '#fafbfc',
-            borderRadius: 12,
-            border: '1px solid #eef1f6',
-          }}
-        >
-          {status === 'loading' || !qrImage ? (
-            <Spin size="large" />
-          ) : (
-            <img
-              src={qrImage}
-              alt="微信登录二维码"
-              style={{ width: 220, height: 220, borderRadius: 8 }}
-            />
-          )}
-        </Flex>
+        {error ? <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} /> : null}
 
-        <Paragraph style={{ textAlign: 'center', marginBottom: 16 }}>{message}</Paragraph>
-
-        {(status === 'expired' || status === 'error') && (
-          <Flex justify="center" style={{ marginBottom: 16 }}>
-            <Button type="primary" icon={<ReloadOutlined />} onClick={startLogin}>
-              刷新二维码
-            </Button>
-          </Flex>
-        )}
-
-        <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 0 }}>
-          1. 打开微信 → 右上角 + → 扫一扫
-          <br />
-          2. 扫描上方二维码并确认登录
-          <br />
-          3. 二维码有效期约 4 分钟
-          {qrId ? (
-            <>
-              <br />
-              ID: {qrId}
-            </>
-          ) : null}
-        </Paragraph>
+        <Form layout="vertical" onFinish={onFinish} autoComplete="off">
+          <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
+            <Input prefix={<UserOutlined />} placeholder="用户名" size="large" />
+          </Form.Item>
+          <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+            <Input.Password prefix={<LockOutlined />} placeholder="密码" size="large" />
+          </Form.Item>
+          <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+            登录
+          </Button>
+        </Form>
       </Card>
     </Flex>
   );

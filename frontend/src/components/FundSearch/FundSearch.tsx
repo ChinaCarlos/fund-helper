@@ -14,21 +14,23 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { api } from '@/api/client';
+import { api, isAppAuthError, isYjbAuthError } from '@/api/client';
 import type { AccountItem, SearchFundItem } from '@/types/portfolio';
 
 const { Text } = Typography;
 
 interface FundSearchProps {
   accounts: AccountItem[];
-  onAuthRequired?: () => void;
+  onYjbRequired?: () => void;
+  onAppAuthRequired?: () => void;
   onRefresh?: () => void;
   compact?: boolean;
 }
 
 export function FundSearch({
   accounts,
-  onAuthRequired,
+  onYjbRequired,
+  onAppAuthRequired,
   onRefresh,
   compact = false,
 }: FundSearchProps) {
@@ -45,8 +47,10 @@ export function FundSearch({
   const [holdCost, setHoldCost] = useState('0.0000');
   const [submitting, setSubmitting] = useState(false);
 
-  const onAuthRequiredRef = useRef(onAuthRequired);
-  onAuthRequiredRef.current = onAuthRequired;
+  const onYjbRequiredRef = useRef(onYjbRequired);
+  const onAppAuthRequiredRef = useRef(onAppAuthRequired);
+  onYjbRequiredRef.current = onYjbRequired;
+  onAppAuthRequiredRef.current = onAppAuthRequired;
 
   const accountIdsKey = accounts.map((a) => a.account_id).join(',');
 
@@ -77,8 +81,12 @@ export function FundSearch({
         setOpen(true);
       } catch (err) {
         const message = err instanceof Error ? err.message : '搜索失败';
-        if (message.includes('未登录') || message.includes('401')) {
-          onAuthRequiredRef.current?.();
+        if (isYjbAuthError(message)) {
+          onYjbRequiredRef.current?.();
+          return;
+        }
+        if (isAppAuthError(message)) {
+          onAppAuthRequiredRef.current?.();
           return;
         }
         setError(message);
@@ -123,8 +131,12 @@ export function FundSearch({
       onRefresh?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : '添加失败';
-      if (message.includes('未登录') || message.includes('401')) {
-        onAuthRequiredRef.current?.();
+      if (isYjbAuthError(message)) {
+        onYjbRequiredRef.current?.();
+        return;
+      }
+      if (isAppAuthError(message)) {
+        onAppAuthRequiredRef.current?.();
         return;
       }
       setError(message);

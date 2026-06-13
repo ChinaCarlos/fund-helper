@@ -1,4 +1,5 @@
-.settings-modal {
+.settings-modal,
+.notification-settings {
   .delivery-target-panel {
     margin: 12px 0 4px;
     padding: 12px 14px;
@@ -36,7 +37,7 @@
   .settings-layout {
     display: flex;
     gap: 0;
-    min-height: 420px;
+    min-height: 480px;
     border: 1px solid #eef1f6;
     border-radius: 10px;
     overflow: hidden;
