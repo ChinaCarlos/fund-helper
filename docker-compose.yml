@@ -48,7 +48,7 @@ services:
 
   app:
     profiles: [full]
-    image: ghcr.io/chinacarlos/fund-helper:latest
+    image: carloscca/fund-helper:latest
     build:
       context: .
       dockerfile: Dockerfile

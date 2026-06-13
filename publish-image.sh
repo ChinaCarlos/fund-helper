@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# 构建并推送应用镜像到 GitHub Container Registry
+# 构建并推送应用镜像到 Docker Hub
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-IMAGE="ghcr.io/chinacarlos/fund-helper"
+IMAGE="carloscca/fund-helper"
 TAG="${1:-latest}"
 
 cd "$ROOT"

@@ -70,18 +70,18 @@ docker compose --profile full logs -f app
 
 | 项 | 说明 |
 |----|------|
-| 应用镜像 | `ghcr.io/chinacarlos/fund-helper:latest` |
+| 应用镜像 | `carloscca/fund-helper:latest` |
 | 数据库 | 内置 MongoDB 7，数据卷 `mongo_data` |
 | 停止 | `docker compose --profile full down` |
 | 清除数据 | `docker compose --profile full down -v` |
 
-> 镜像为公开包时可直接拉取；若仓库设为私有，需先 `docker login ghcr.io`（GitHub 用户名 + Personal Access Token，权限 `read:packages`）。
+> 镜像为公开包时可直接拉取；若仓库设为私有，需先 `docker login`（Docker Hub 用户名 + Access Token）。
 
 ### 维护者发布镜像
 
 ```bash
 chmod +x publish-image.sh
-docker login ghcr.io   # 用户名 + PAT（write:packages）
+docker login           # Docker Hub 用户名 + Access Token
 ./publish-image.sh     # 可选指定版本号: ./publish-image.sh v1.0.0
 ```
 
