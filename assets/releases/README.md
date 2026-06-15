@@ -34,9 +34,9 @@ node scripts/release.mjs all --release    # 两者同时触发 CI
 <!-- fund-helper:version:chrome -->
 | 项 | 链接 |
 |----|------|
-| 当前版本 | `1.0.0`（见 `versions.json`） |
+| 当前版本 | `1.0.1`（见 `versions.json`） |
 | 构建 | [Actions → Chrome Extension Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/chrome-release.yml) |
-| 下载 | [Release chrome-v1.0.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.0) |
+| 下载 | [Release chrome-v1.0.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.1) |
 <!-- /fund-helper:version:chrome -->
 
 **触发 CI：**

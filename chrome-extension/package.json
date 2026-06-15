@@ -2,7 +2,7 @@
   "name": "fund-helper-extension",
   "private": true,
   "packageManager": "pnpm@10.12.1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
