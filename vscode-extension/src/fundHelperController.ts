@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import { PORTFOLIO_AUTO_REFRESH_MS } from "./constant";
 import { fetchPortfolioSnapshot } from "./portfolio";
 import { SessionStore } from "./sessionStore";
+import { buildStatusBarContent } from "./statusBar";
 import type { PortfolioSnapshot, YjbSession } from "./types/portfolio";
 import { yjb, YjbApiError } from "./yjb";
 
@@ -13,17 +14,6 @@ type WebviewInbound =
   | { type: "pollQr"; qrId: string }
   | { type: "refresh" }
   | { type: "logout" };
-
-function formatSigned(value: number): string {
-  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
-  return (
-    sign +
-    Math.abs(value).toLocaleString("zh-CN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  );
-}
 
 function getNonce(): string {
   const chars =
@@ -173,15 +163,10 @@ export class FundHelperController {
   }
 
   private updateStatusBar(snapshot: PortfolioSnapshot | null): void {
-    if (!snapshot) {
-      this.statusBarItem.text = "$(graph) Fund Helper";
-      this.statusBarItem.tooltip = "点击查看基金持仓";
-      return;
-    }
-    const income = snapshot.today_income;
-    const sign = income > 0 ? "+" : "";
-    this.statusBarItem.text = `$(graph) ${sign}${formatSigned(income)}`;
-    this.statusBarItem.tooltip = `Fund Helper · 当日收益 ${formatSigned(income)} (${snapshot.updated_at})`;
+    const { text, tooltip } = buildStatusBarContent(snapshot);
+    this.statusBarItem.text = text;
+    this.statusBarItem.tooltip = tooltip;
+    this.statusBarItem.show();
   }
 
   private async sendBoot(webview: vscode.Webview): Promise<void> {
@@ -338,14 +323,19 @@ export async function revealFundHelperSidebar(): Promise<void> {
 }
 
 export async function revealFundHelperBottomPanel(): Promise<void> {
-  await vscode.commands.executeCommand("workbench.action.togglePanel");
+  // 不用 togglePanel：面板已打开时 toggle 会把整个底部区域关掉
+  try {
+    await vscode.commands.executeCommand("workbench.panel.reveal");
+  } catch {
+    await vscode.commands.executeCommand("workbench.action.togglePanel");
+  }
   await vscode.commands.executeCommand(
     "workbench.view.extension.fund-helper-panel",
   );
   try {
     await vscode.commands.executeCommand("fundHelper.panelView.focus");
   } catch {
-    // ignore
+    // focus 命令在部分宿主（含 Cursor）上可能不可用，忽略
   }
 }
 

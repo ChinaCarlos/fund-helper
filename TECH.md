@@ -824,10 +824,12 @@ interface IncomeLineData {
 ### 8.5 当日收益计算公式
 
 ```
-day_earn = round(money × gszzl / 100, 2)
+rate = pickEstimateRate(nv)  // gszzl → zsgzzl → vgszzl，均为空则 jzzzl → rzzl
+day_earn = round(money × rate / 100, 2)
+day_rate = estimateRate != 0 ? estimateRate : publishedRate
 ```
 
-其中 `gszzl` 优先取 `nv_info.gszzl`，回退 `rzzl` / `zsgzzl`。
+`nv_info` 字段优先级与实测说明见 [API_README.md §7](./API_README.md#7-持仓基金列表)（含 QDII/港股 `vgszzl` / `vgsz` 回退）。
 
 ---
 
@@ -1707,7 +1709,7 @@ boot → loadSession()
 **交易时段展示**：
 
 - `isTradingHours()`：工作日 9:30–11:30、13:30–15:00
-- 交易时段基金行显示「预估」+ `gszzl`；非交易时段显示 `day_rate`（公布涨幅）
+- 交易时段基金行显示「预估」+ `day_rate`（已归一化，含 `vgszzl` 回退）；非交易时段同样显示 `day_rate`（公布涨幅）
 
 ### 17.7 Manifest 与权限
 

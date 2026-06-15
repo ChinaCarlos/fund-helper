@@ -29,6 +29,7 @@
     "基金"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onView:fundHelper.sidebarView",
     "onView:fundHelper.panelView",
     "onCommand:fundHelper.show",

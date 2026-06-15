@@ -3,6 +3,9 @@ export interface FundNvInfo {
   gzjz: number;
   gszzl: number;
   jzzzl: number;
+  /** 当日净值是否已公布（非纯 vgszzl 估值） */
+  nav_updated: boolean;
+  jzrq?: string;
 }
 
 export interface FundItem {

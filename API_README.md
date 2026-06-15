@@ -341,23 +341,31 @@ GET /fund_hold?account_id={account_id}
     "has_up_down_remid": 0,
     "fh_amount": "0.00",
     "nv_info": {
-      "dwjz": "1.9200",
+      "dwjz": "1.7699",
+      "rzzl": "-0.12",
+      "jzrq": "2026-06-12",
+      "gszzl": "",
+      "zsgzzl": "",
+      "vgszzl": "6.07",
+      "vgsz": "1.8773",
       "gzjz": "1.9350",
-      "gsz": "1.9350",
-      "gszzl": "0.78",
-      "jzzzl": "0.52",
-      "jzrq": "2024-01-15",
-      "gztime": "2024-01-15 14:30"
+      "zsgz": "1.9841",
+      "gsz": "2.0210",
+      "gztime": "2026-06-15 19:35:45",
+      "time": "2026-06-15 19:35:45"
     }
   }
 ]
 ```
+
+> **说明（2026-06 实测）**：`gszzl` / `zsgzzl` 可能为**空字符串**（尤其 QDII、港股 `market_type: ch_hk` 或净值未当日更新时），此时估算涨跌幅在 **`vgszzl`**，估算净值在 **`vgsz`**。客户端需按下方优先级归一化，不可仅读 `gszzl`。
 
 | 字段                | 类型    | 说明                            |
 | ------------------- | ------- | ------------------------------- |
 | `fund_id`           | number  | 持仓记录 ID（删除时用）         |
 | `code`              | string  | 基金代码                        |
 | `short_name`        | string  | 基金简称                        |
+| `market_type`       | string  | 市场类型，如 `ch_hk`（港股/QDII） |
 | `hold_share`        | string  | 持有份额                        |
 | `hold_cost`         | string  | 持有成本（单价）                |
 | `hold_sum`          | string  | 持有金额                        |
@@ -365,12 +373,34 @@ GET /fund_hold?account_id={account_id}
 | `has_aip`           | number  | 是否有定投 (-1=无)              |
 | `has_up_down_remid` | number  | 是否有涨跌提醒                  |
 | `fh_amount`         | string  | 分红金额                        |
-| `nv_info.dwjz`      | string  | 单位净值                        |
-| `nv_info.gzjz`      | string  | 估值净值                        |
-| `nv_info.gszzl`     | string  | 估算涨跌幅（%）                 |
-| `nv_info.jzzzl`     | string  | 净值涨跌幅（%）                 |
-| `nv_info.jzrq`      | string  | 净值日期                        |
-| `nv_info.gztime`    | string  | 估值时间                        |
+
+**`nv_info` 净值/估值字段（API 原始）：**
+
+| 字段 | 类型 | 说明 |
+| ---- | ---- | ---- |
+| `nv_info.dwjz` | string | 单位净值（已公布） |
+| `nv_info.jzzzl` | string | 净值涨跌幅 %（已公布，同 `rzzl` 语义） |
+| `nv_info.rzzl` | string | 日涨跌幅 %（已公布，常与 `jzzzl` 相同） |
+| `nv_info.jzrq` | string | 净值日期 |
+| `nv_info.gszzl` | string | 估算涨跌幅 %（**可能为空**） |
+| `nv_info.zsgzzl` | string | 指数/备用估算涨跌幅 %（**可能为空**） |
+| `nv_info.vgszzl` | string | 估值涨跌幅 %（QDII/港股等常仅在此字段有值） |
+| `nv_info.gzjz` | string | 估值净值 |
+| `nv_info.zsgz` | string | 备用估值净值 |
+| `nv_info.gsz` | string | 估算净值（与估值净值同义，部分基金有值） |
+| `nv_info.vgsz` | string | 估值净值（与 `vgszzl` 配套） |
+| `nv_info.gztime` | string | 估值时间 |
+| `nv_info.time` | string | 数据更新时间 |
+
+**客户端归一化规则（各端 `nvInfo` / `calculator.py` / `portfolio.rs` 统一）：**
+
+| 归一化字段 | 读取优先级（取第一个非空值） | 用途 |
+| ---------- | ---------------------------- | ---- |
+| 估算涨跌幅 `gszzl` | `gszzl` → `zsgzzl` → `vgszzl` | 交易时段「预估涨幅」、排序 |
+| 公布涨跌幅 `jzzzl` | `jzzzl` → `rzzl` | 非交易时段涨幅、估算缺失时回退 |
+| 估算净值 `gzjz` | `gzjz` → `zsgz` → `gsz` → `vgsz` | 估值净值展示 |
+| 展示/排序 `day_rate` | 估算涨跌幅非 0 则用估算，否则用公布 | 列表涨幅列 |
+| 当日预估收益 `day_earn` | `money × rate / 100`，`rate` 同估算链，缺失时回退公布 | 当日收益 |
 
 **插件计算的衍生字段（客户端计算，非 API 返回）：**
 

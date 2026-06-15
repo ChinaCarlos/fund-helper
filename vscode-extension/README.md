@@ -38,14 +38,12 @@ Fund Helper 将养基宝持仓面板嵌入 VS Code / Cursor：微信扫码登录
 
 ## 入口一览
 
-扩展提供 **四个可视化入口**，均可打开同一套持仓 Webview（侧边栏为主入口，底部 Panel 可并列查看）。
-
-![Fund Helper 扩展入口示意：活动栏图标、状态栏、底部 Panel Tab、编辑器标题栏命令](https://raw.githubusercontent.com/ChinaCarlos/fund-helper/main/vscode-extension/docs/entry-points.png)
+扩展提供 **四个可视化入口**，均可打开同一套持仓 Webview（未登录时显示扫码页）。
 
 | # | 位置 | 操作 | 说明 |
 |---|------|------|------|
 | ① | **活动栏（左侧）** | 点击柱状图图标 | 打开侧边栏「Fund Helper → 持仓」主视图 |
-| ② | **状态栏（左下角）** | 点击 `Fund Helper` 或当日收益 | 跳转到侧边栏持仓视图 |
+| ② | **状态栏（左下角）** | 点击 `Fund Helper` 或当日收益 | **打开底部 Panel**（与终端 / 任务并列），未登录时同样可打开并扫码 |
 | ③ | **底部 Panel** | 切换到 **Fund Helper** Tab | 在终端区域上方嵌入持仓面板，可与终端并列 |
 | ④ | **编辑器标题栏（右上角）** | 点击图表按钮 / `...` 菜单中的 **Fund Helper** | 打开侧边栏（Cursor 可能将按钮收入 `...` 菜单） |
 

@@ -99,22 +99,55 @@ fn normalize_index_dir(dir_val: f64, div_val: f64) -> f64 {
     }
 }
 
+fn pick_first_float(nv: &serde_json::Map<String, Value>, keys: &[&str]) -> f64 {
+    for key in keys {
+        if let Some(val) = nv.get(*key) {
+            if val.is_null() {
+                continue;
+            }
+            if let Some(s) = val.as_str() {
+                if s.is_empty() {
+                    continue;
+                }
+            }
+            let n = to_float(Some(val), 0.0);
+            return n;
+        }
+    }
+    0.0
+}
+
+fn pick_estimate_rate(nv: &serde_json::Map<String, Value>) -> f64 {
+    pick_first_float(nv, &["gszzl", "zsgzzl", "vgszzl"])
+}
+
+fn pick_published_rate(nv: &serde_json::Map<String, Value>) -> f64 {
+    pick_first_float(nv, &["jzzzl", "rzzl"])
+}
+
+fn pick_estimate_nav(nv: &serde_json::Map<String, Value>) -> f64 {
+    pick_first_float(nv, &["gzjz", "zsgz", "gsz", "vgsz"])
+}
+
+fn pick_rate_for_day_earn(nv: &serde_json::Map<String, Value>) -> f64 {
+    let estimate = pick_estimate_rate(nv);
+    if estimate != 0.0 {
+        return estimate;
+    }
+    pick_published_rate(nv)
+}
+
 fn calc_fund_day_earn(fund: &Value) -> f64 {
     let money = to_float(fund.get("money"), 0.0);
     let nv = fund.get("nv_info").and_then(obj).cloned().unwrap_or_default();
-    let rate = to_float(
-        nv.get("gszzl")
-            .or(nv.get("rzzl"))
-            .or(nv.get("zsgzzl")),
-        0.0,
-    );
+    let rate = pick_rate_for_day_earn(&nv);
     ((money * rate) / 100.0 * 100.0).round() / 100.0
 }
 
 fn enrich_fund(fund: &Value, account_id: i64, account_title: &str) -> FundItem {
     let nv_map = fund.get("nv_info").and_then(obj).cloned().unwrap_or_default();
-    let gszzl = to_float(nv_map.get("gszzl").or(nv_map.get("zsgzzl")), 0.0);
-    let jzzzl = to_float(nv_map.get("jzzzl").or(nv_map.get("rzzl")), 0.0);
+    let gszzl = pick_estimate_rate(&nv_map);
+    let jzzzl = pick_published_rate(&nv_map);
     let id = fund.get("id").and_then(|v| v.as_i64());
 
     FundItem {
@@ -140,11 +173,8 @@ fn enrich_fund(fund: &Value, account_id: i64, account_title: &str) -> FundItem {
         account_id: Some(account_id),
         account_title: Some(account_title.to_string()),
         nv_info: Some(FundNvInfo {
-            dwjz: to_float(nv_map.get("dwjz"), 0.0),
-            gzjz: to_float(
-                nv_map.get("gzjz").or(nv_map.get("zsgz")).or(nv_map.get("gsz")),
-                0.0,
-            ),
+            dwjz: pick_first_float(&nv_map, &["dwjz"]),
+            gzjz: pick_estimate_nav(&nv_map),
             gszzl,
             jzzzl,
         }),

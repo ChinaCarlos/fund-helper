@@ -24,11 +24,39 @@ def _to_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def _pick_first(nv: dict, *keys: str, default: float = 0.0) -> float:
+    """按优先级取 nv_info 中第一个非空字段（空字符串视为缺失）。"""
+    for key in keys:
+        val = nv.get(key)
+        if val is not None and val != "":
+            return _to_float(val, default)
+    return default
+
+
+def _pick_estimate_rate(nv: dict) -> float:
+    return _pick_first(nv, "gszzl", "zsgzzl", "vgszzl")
+
+
+def _pick_published_rate(nv: dict) -> float:
+    return _pick_first(nv, "jzzzl", "rzzl")
+
+
+def _pick_estimate_nav(nv: dict) -> float:
+    return _pick_first(nv, "gzjz", "zsgz", "gsz", "vgsz")
+
+
+def _pick_rate_for_day_earn(nv: dict) -> float:
+    estimate = _pick_estimate_rate(nv)
+    if estimate != 0.0:
+        return estimate
+    return _pick_published_rate(nv)
+
+
 def calc_fund_day_earn(fund: dict) -> float:
     """根据市值和估算涨跌幅计算当日预估收益。"""
     money = _to_float(fund.get("money"))
     nv = fund.get("nv_info") or {}
-    rate = _to_float(nv.get("gszzl") or nv.get("rzzl") or nv.get("zsgzzl"))
+    rate = _pick_rate_for_day_earn(nv)
     return round(money * rate / 100, 2)
 
 
@@ -39,10 +67,10 @@ def enrich_fund(
     account_title: str | None = None,
 ) -> dict:
     nv = fund.get("nv_info") or {}
-    gszzl = _to_float(nv.get("gszzl") or nv.get("zsgzzl"))
-    jzzzl = _to_float(nv.get("jzzzl") or nv.get("rzzl"))
-    gzjz = _to_float(nv.get("gzjz") or nv.get("zsgz") or nv.get("gsz"))
-    day_rate = gszzl or jzzzl
+    gszzl = _pick_estimate_rate(nv)
+    jzzzl = _pick_published_rate(nv)
+    gzjz = _pick_estimate_nav(nv)
+    day_rate = gszzl if gszzl != 0.0 else jzzzl
     day_earn = calc_fund_day_earn(fund)
     hold_sum = _to_float(fund.get("hold_sum") or fund.get("money"))
 
