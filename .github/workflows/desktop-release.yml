@@ -76,20 +76,18 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Add macOS Rust targets (Universal binary)
-        if: matrix.os_name == 'macos'
-        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+        with:
+          toolchain: 1.88
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: desktop/src-tauri -> target
 
-      - name: Build Tauri (macOS universal)
+      - name: Build Tauri (macOS Apple Silicon)
         if: matrix.os_name == 'macos'
         working-directory: desktop
-        run: pnpm tauri build --target universal-apple-darwin
+        run: pnpm tauri build
 
       - name: Build Tauri (Windows)
         if: matrix.os_name == 'windows'
@@ -172,7 +170,7 @@ jobs:
 
             | 平台 | 文件 |
             |------|------|
-            | macOS（Universal） | `Fund-Helper-${{ steps.ver.outputs.version }}-macos.dmg` |
+            | macOS（Apple Silicon / M 系列） | `Fund-Helper-${{ steps.ver.outputs.version }}-macos.dmg` |
             | Windows（x64） | `Fund-Helper-${{ steps.ver.outputs.version }}-windows-setup.exe` |
 
             安装后使用微信扫码登录养基宝即可查看持仓；通知配置见设置页。
