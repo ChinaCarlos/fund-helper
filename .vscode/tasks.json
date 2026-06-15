@@ -4,7 +4,7 @@
     {
       "label": "fund-helper: build extension",
       "type": "shell",
-      "command": "npm run build",
+      "command": "pnpm run build",
       "options": {
         "cwd": "${workspaceFolder}/vscode-extension"
       },

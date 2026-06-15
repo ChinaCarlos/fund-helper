@@ -56,7 +56,7 @@ EOF
 ensure_deps() {
   if [[ ! -d "$EXT/node_modules" ]]; then
     log "安装依赖…"
-    (cd "$EXT" && npm ci)
+    (cd "$ROOT" && pnpm install --filter fund-helper-vscode)
   fi
 }
 
@@ -64,10 +64,14 @@ build_vsix() {
   local out_file="$1"
   ensure_deps
   log "构建 extension + webview…"
-  (cd "$EXT" && npm run build)
+  (cd "$EXT" && pnpm run build)
   log "打包 VSIX → ${out_file}"
   mkdir -p "$(dirname "$out_file")"
-  (cd "$EXT" && npx --yes @vscode/vsce@latest package --out "$out_file")
+  (cd "$EXT" && npx --yes @vscode/vsce@latest package \
+    --no-dependencies \
+    --githubBranch main \
+    --baseImagesUrl "https://raw.githubusercontent.com/${GITHUB_REPO}/main/vscode-extension" \
+    --out "$out_file")
   log "VSIX 大小: $(du -h "$out_file" | cut -f1)"
 }
 
@@ -181,8 +185,12 @@ publish_marketplace() {
   sync_version
   ensure_deps
   log "构建并发布到 VS Code Marketplace（publisher: fund-helper-org）…"
-  (cd "$EXT" && npm run build)
-  (cd "$EXT" && npx --yes @vscode/vsce@latest publish -p "$VSCE_PAT")
+  (cd "$EXT" && pnpm run build)
+  (cd "$EXT" && npx --yes @vscode/vsce@latest publish \
+    --no-dependencies \
+    --githubBranch main \
+    --baseImagesUrl "https://raw.githubusercontent.com/${GITHUB_REPO}/main/vscode-extension" \
+    -p "$VSCE_PAT")
 
   cat <<EOF
 

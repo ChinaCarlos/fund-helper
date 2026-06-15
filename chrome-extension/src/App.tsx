@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LoginView } from '@/components/LoginView';
 import { PortfolioView } from '@/components/PortfolioView';
+import { PORTFOLIO_AUTO_REFRESH_MS } from '@/constant';
 import { YjbApiError } from '@/lib/yjb';
 import { fetchPortfolioSnapshot } from '@/lib/portfolio';
 import { clearSession, loadSession, saveSession } from '@/lib/storage';
@@ -14,9 +15,17 @@ export function App() {
   const [snapshot, setSnapshot] = useState<PortfolioSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const portfolioFetchInFlight = useRef(false);
 
-  const loadPortfolio = useCallback(async (current: YjbSession) => {
-    setLoading(true);
+  const loadPortfolio = useCallback(async (current: YjbSession, options?: { silent?: boolean }) => {
+    if (portfolioFetchInFlight.current) {
+      return;
+    }
+    portfolioFetchInFlight.current = true;
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setLoading(true);
+    }
     setError('');
     try {
       const data = await fetchPortfolioSnapshot(current.token);
@@ -32,9 +41,30 @@ export function App() {
       }
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
-      setLoading(false);
+      portfolioFetchInFlight.current = false;
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, []);
+
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+
+  useEffect(() => {
+    if (phase !== 'portfolio' || !session?.token) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const current = sessionRef.current;
+      if (current?.token) {
+        void loadPortfolio(current, { silent: true });
+      }
+    }, PORTFOLIO_AUTO_REFRESH_MS);
+
+    return () => window.clearInterval(timer);
+  }, [phase, session?.token, loadPortfolio]);
 
   useEffect(() => {
     void (async () => {

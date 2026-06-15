@@ -56,6 +56,8 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     void controller.refreshAll();
+    controller.startAutoRefresh();
+    context.subscriptions.push({ dispose: () => controller?.dispose() });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     void vscode.window.showErrorMessage(`Fund Helper 启动失败: ${message}`);
@@ -64,5 +66,6 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {
+  controller?.dispose();
   controller = undefined;
 }

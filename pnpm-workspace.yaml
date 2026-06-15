@@ -1,0 +1,5 @@
+packages:
+  - web
+  - chrome-extension
+  - vscode-extension
+  - desktop

@@ -40,7 +40,7 @@ Fund Helper 将养基宝持仓面板嵌入 VS Code / Cursor：微信扫码登录
 
 扩展提供 **四个可视化入口**，均可打开同一套持仓 Webview（侧边栏为主入口，底部 Panel 可并列查看）。
 
-![Fund Helper 扩展入口示意：活动栏图标、状态栏、底部 Panel Tab、编辑器标题栏命令](./docs/entry-points.png)
+![Fund Helper 扩展入口示意：活动栏图标、状态栏、底部 Panel Tab、编辑器标题栏命令](https://raw.githubusercontent.com/ChinaCarlos/fund-helper/main/vscode-extension/docs/entry-points.png)
 
 | # | 位置 | 操作 | 说明 |
 |---|------|------|------|
@@ -124,8 +124,8 @@ ext install fund-helper-org.fund-helper-vscode
 
 ```bash
 cd vscode-extension
-npm install
-npm run build
+pnpm install
+pnpm run build
 ```
 
 1. 用 VS Code / Cursor 打开 **`fund-helper` 根目录** 或 **`vscode-extension` 子目录**
@@ -201,16 +201,16 @@ export VSCE_PAT=你的PAT
 
 ```bash
 cd vscode-extension
-npm install
-npm run build          # extension + webview 一次构建
-npm run watch          # 监听 Extension Host（另开终端）
-npm run watch:webview  # 监听 Webview React
+pnpm install
+pnpm run build          # extension + webview 一次构建
+pnpm run watch          # 监听 Extension Host（另开终端）
+pnpm run watch:webview  # 监听 Webview React
 ```
 
 | 改动范围 | 刷新方式 |
 |----------|----------|
 | `src/extension.ts`、`yjb.ts`、`portfolio.ts` 等 | `Cmd+Shift+F5` 重载扩展 |
-| `src/webview/` React UI | `npm run build:webview` → Webview 内 `Cmd+R` |
+| `src/webview/` React UI | `pnpm run build:webview` → Webview 内 `Cmd+R` |
 
 Webview 内右键 → **Open Webview Developer Tools** 可调试 React 层。
 

@@ -122,13 +122,13 @@ ensure_pnpm() {
 
 start_web() {
   ensure_pnpm
-  cd "$ROOT/web"
-  if [ ! -d node_modules ]; then
+  cd "$ROOT"
+  if [ ! -d node_modules ] && [ ! -d web/node_modules ]; then
     echo "==> 安装 Web 依赖 (pnpm)..."
-    pnpm install
+    pnpm install --filter fund-helper-web
   fi
   echo "==> 启动 Web http://localhost:3000"
-  pnpm dev
+  pnpm --filter fund-helper-web dev
 }
 
 case "${1:-all}" in

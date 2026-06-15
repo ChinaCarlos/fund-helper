@@ -61,7 +61,7 @@ chmod +x publish-desktop.sh
 - Python 3.11+（推荐 3.12）
 - [uv](https://docs.astral.sh/uv/)
 - Node.js 18+
-- [pnpm](https://pnpm.io/) 9+
+- [pnpm](https://pnpm.io/) 9+（各子项目统一 pnpm workspace 管理；项目根 `.npmrc` 使用国内镜像，不影响系统 registry）
 - MongoDB 7+（本地 `mongodb://localhost:27017`，或通过 Docker 仅启动 mongo 服务）
 
 **Docker 部署**
@@ -159,7 +159,9 @@ docker compose --profile full down -v       # 停止并清除部署库数据
 
 ```bash
 cd /path/to/fund-helper
-chmod +x dev-infra.sh start.sh
+
+# 安装全部前端子项目依赖（使用项目内 .npmrc 镜像，不改系统 registry）
+pnpm install
 
 # 1. 启动开发 MongoDB（独立数据卷 mongo_dev_data）
 ./dev-infra.sh

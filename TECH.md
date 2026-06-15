@@ -1930,7 +1930,7 @@ Host 在 `sendBoot` / `loadPortfolio` 后通过 `postMessage` 推送 `{ type: 's
 3. 注入 CSP：`script-src 'nonce-…'` + `webview.cspSource`
 4. 为 `<script type="module">` 添加 `nonce`
 
-若 `dist/webview` 不存在，Webview 显示「请先运行 npm run build」。
+若 `dist/webview` 不存在，Webview 显示「请先运行 pnpm run build」。
 
 ### 19.8 主题适配（`panel.css`）
 
@@ -1949,10 +1949,10 @@ QR 码 Canvas 颜色从 CSS 变量读取，随明暗主题变化。
 
 ```bash
 cd vscode-extension
-npm install
-npm run build       # esbuild extension + vite webview
-npm run watch       # 监听 Host
-npm run watch:webview
+pnpm install
+pnpm run build       # esbuild extension + vite webview
+pnpm run watch       # 监听 Host
+pnpm run watch:webview
 ```
 
 | 产物 | 路径 |

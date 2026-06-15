@@ -1,0 +1,16 @@
+{
+  "name": "fund-helper",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "dev": "./start.sh",
+    "dev:web": "pnpm --filter fund-helper-web dev",
+    "dev:chrome": "pnpm --filter fund-helper-extension dev",
+    "dev:desktop": "pnpm --filter fund-helper-desktop tauri:dev",
+    "build:web": "pnpm --filter fund-helper-web build",
+    "build:chrome": "pnpm --filter fund-helper-extension build",
+    "build:vscode": "pnpm --filter fund-helper-vscode build",
+    "build:desktop": "pnpm --filter fund-helper-desktop tauri:build",
+    "install:all": "pnpm install"
+  }
+}
