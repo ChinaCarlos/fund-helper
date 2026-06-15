@@ -3,6 +3,8 @@ export interface FundNvInfo {
   gzjz: number;
   gszzl: number;
   jzzzl: number;
+  nav_updated: boolean;
+  jzrq?: string;
 }
 
 export interface FundItem {

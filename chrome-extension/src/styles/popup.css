@@ -72,6 +72,27 @@ body {
   padding: 14px 14px 0;
 }
 
+.portfolio-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.portfolio-scroll {
+  flex: 1;
+  min-height: 0;
+  scroll-padding-bottom: 12px;
+  padding-bottom: 8px;
+}
+
+.portfolio-scroll::after {
+  content: '';
+  display: block;
+  height: 8px;
+}
+
 .view::after {
   content: '';
   display: block;
@@ -479,18 +500,42 @@ body {
 }
 
 .fund-rate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
   font-size: 11px;
   font-weight: 600;
   margin-top: 2px;
 }
 
+.fund-rate-value {
+  font-variant-numeric: tabular-nums;
+}
+
 .rate-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 999px;
   font-size: 10px;
-  font-weight: 500;
-  color: var(--muted);
-  margin-right: 3px;
-  vertical-align: baseline;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.rate-tag-estimate {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.rate-tag-updated {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.24);
 }
 
 .fund-assets {
@@ -522,6 +567,86 @@ body {
   border-radius: 8px;
   color: #b91c1c;
   font-size: 12px;
+}
+
+.portfolio-dock {
+  flex-shrink: 0;
+  margin: 0 10px 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+
+.portfolio-dock.is-loading {
+  border-color: rgba(37, 99, 235, 0.35);
+}
+
+.dock-error {
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.dock-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dock-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dock-label {
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.dock-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dock-rate {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dock-meta {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.dock-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.dock-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
 .global-loading {

@@ -5,7 +5,7 @@ export type FundSortOrder = 'desc' | 'asc';
 
 export function fundDayRate(fund: FundItem, trading: boolean): number {
   if (trading) {
-    return fund.nv_info?.gszzl ?? fund.day_rate;
+    return fund.nv_info?.gszzl || fund.day_rate;
   }
   return fund.day_rate;
 }

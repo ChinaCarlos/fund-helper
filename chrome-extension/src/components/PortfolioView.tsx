@@ -8,6 +8,10 @@ import {
   type FundSortKey,
   type FundSortOrder,
 } from '@/lib/fundSort';
+import {
+  fundRateTagKind,
+  fundRateTagLabel,
+} from '@/lib/fundRateTag';
 import { colorClass, formatMoney, formatPercent, formatSigned } from '@/lib/format';
 import type { FundItem, PortfolioSnapshot, YjbSession } from '@/types/portfolio';
 
@@ -81,7 +85,8 @@ export function PortfolioView({
   const avatarUrl = session.avatar?.replace(/^http:\/\//, 'https://');
 
   return (
-    <section className="view">
+    <div className="portfolio-shell">
+      <section className="view portfolio-scroll">
       <header className="header header-compact">
         <div className="user-row">
           {avatarUrl ? (
@@ -92,7 +97,7 @@ export function PortfolioView({
           <div className="user-meta">
             <span className="user-name">{session.nickname || '养基宝用户'}</span>
             <span className="meta-line" title={`更新于 ${snapshot.updated_at}`}>
-              {snapshot.trading ? '交易时段 · 显示预估涨幅' : '非交易时段'}
+              {snapshot.trading ? '交易时段' : '非交易时段'}
               {' · '}
               {loading ? '刷新中…' : formatRefreshHint(snapshot.updated_at)}
             </span>
@@ -216,8 +221,8 @@ export function PortfolioView({
           <div className="empty-hint">暂无持仓基金</div>
         ) : (
           sortedFunds.map((fund) => {
-            const estimateRate = fund.nv_info?.gszzl ?? fund.day_rate;
-            const rateValue = snapshot.trading ? estimateRate : fund.day_rate;
+            const rateValue = fund.day_rate;
+            const tagKind = fundRateTagKind(fund, snapshot.trading);
 
             return (
             <div key={`${fund.account_id}-${fund.code}`} className="fund-row">
@@ -233,14 +238,12 @@ export function PortfolioView({
                   {formatSigned(fund.day_earn)}
                 </div>
                 <div className={`fund-rate ${colorClass(rateValue)}`}>
-                  {snapshot.trading ? (
-                    <>
-                      <span className="rate-tag">预估</span>
-                      {formatPercent(estimateRate)}
-                    </>
-                  ) : (
-                    formatPercent(fund.day_rate)
-                  )}
+                      {tagKind ? (
+                        <span className={`rate-tag rate-tag-${tagKind}`}>
+                          {fundRateTagLabel(tagKind)}
+                        </span>
+                      ) : null}
+                      <span className="fund-rate-value">{formatPercent(rateValue)}</span>
                 </div>
               </div>
               <div className="fund-assets">
@@ -251,8 +254,32 @@ export function PortfolioView({
           })
         )}
       </div>
+      </section>
 
-      {error ? <div className="error-banner">{error}</div> : null}
-    </section>
+      <footer className={`portfolio-dock ${loading ? 'is-loading' : ''}`}>
+        {error ? <div className="dock-error">{error}</div> : null}
+        <div className="dock-body">
+          <div className="dock-stat">
+            <span className="dock-label">当日收益</span>
+            <span className={`dock-value ${colorClass(snapshot.today_income)}`}>
+              {formatSigned(snapshot.today_income)}
+            </span>
+            <span className={`dock-rate ${colorClass(snapshot.today_income_rate)}`}>
+              {formatPercent(snapshot.today_income_rate)}
+            </span>
+          </div>
+          <div className="dock-meta">
+            {loading ? (
+              <span className="dock-status">
+                <span className="dock-spinner" aria-hidden="true" />
+                刷新中
+              </span>
+            ) : (
+              <span className="dock-status">{formatRefreshHint(snapshot.updated_at)} 更新</span>
+            )}
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

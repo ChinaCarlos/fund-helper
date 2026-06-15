@@ -103,12 +103,6 @@ export function App() {
 
   return (
     <div className="app">
-      {loading ? (
-        <div className="global-loading">
-          <div className="spinner" />
-        </div>
-      ) : null}
-
       {phase === 'login' ? (
         <LoginView onLoggedIn={handleLoggedIn} />
       ) : session ? (

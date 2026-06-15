@@ -1,11 +1,10 @@
 import { yjb } from '@/lib/yjb';
 import type { AccountItem, FundItem, IndexItem, PortfolioSnapshot } from '@/types/portfolio';
-
-function toFloat(value: unknown, fallback = 0): number {
-  if (value === null || value === undefined || value === '') return fallback;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
+import {
+  calcFundDayEarnFromNv,
+  normalizeFundNvInfo,
+  toFloat,
+} from '@/lib/nvInfo';
 
 function normalizeIndexDir(dirVal: number, divVal: number): number {
   if (dirVal === 0) return 0;
@@ -15,21 +14,13 @@ function normalizeIndexDir(dirVal: number, divVal: number): number {
   return dirVal;
 }
 
-function calcFundDayEarn(fund: Record<string, unknown>): number {
-  const money = toFloat(fund.money);
-  const nv = (fund.nv_info as Record<string, unknown> | undefined) ?? {};
-  const rate = toFloat(nv.gszzl ?? nv.rzzl ?? nv.zsgzzl);
-  return Math.round((money * rate) / 100 * 100) / 100;
-}
-
 function enrichFund(
   fund: Record<string, unknown>,
   accountId: number,
   accountTitle: string,
 ): FundItem {
   const nv = (fund.nv_info as Record<string, unknown> | undefined) ?? {};
-  const gszzl = toFloat(nv.gszzl ?? nv.zsgzzl);
-  const jzzzl = toFloat(nv.jzzzl ?? nv.rzzl);
+  const normalized = normalizeFundNvInfo(nv);
   return {
     id: toFloat(fund.id),
     code: String(fund.code ?? ''),
@@ -37,15 +28,17 @@ function enrichFund(
     money: toFloat(fund.money),
     hold_sum: toFloat(fund.hold_sum ?? fund.money),
     hold_earn: toFloat(fund.hold_earn),
-    day_earn: calcFundDayEarn(fund),
-    day_rate: gszzl || jzzzl,
+    day_earn: calcFundDayEarnFromNv(toFloat(fund.money), nv),
+    day_rate: normalized.dayRate,
     account_id: accountId,
     account_title: accountTitle,
     nv_info: {
-      dwjz: toFloat(nv.dwjz),
-      gzjz: toFloat(nv.gzjz ?? nv.zsgz ?? nv.gsz),
-      gszzl,
-      jzzzl,
+      dwjz: normalized.dwjz,
+      gzjz: normalized.gzjz,
+      gszzl: normalized.gszzl,
+      jzzzl: normalized.jzzzl,
+      nav_updated: normalized.navUpdated,
+      jzrq: normalized.jzrq || undefined,
     },
   };
 }
