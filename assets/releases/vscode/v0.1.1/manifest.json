@@ -1,0 +1,15 @@
+{
+  "version": "0.1.1",
+  "tag": "vscode-v0.1.1",
+  "repo": "ChinaCarlos/fund-helper",
+  "artifacts": {
+    "vsix": "fund-helper-vscode-0.1.1.vsix"
+  },
+  "downloadPath": "assets/releases/vscode/v0.1.1/fund-helper-vscode-0.1.1.vsix",
+  "downloadRaw": "https://github.com/ChinaCarlos/fund-helper/raw/main/assets/releases/vscode/v0.1.1/fund-helper-vscode-0.1.1.vsix",
+  "downloadRelease": "https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.1/fund-helper-vscode-0.1.1.vsix",
+  "marketplace": "https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode",
+  "publisher": "fund-helper-org",
+  "extensionId": "fund-helper-org.fund-helper-vscode",
+  "install": "VS Code / Cursor → Cmd+Shift+P → Extensions: Install from VSIX…"
+}

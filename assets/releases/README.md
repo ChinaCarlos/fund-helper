@@ -59,9 +59,11 @@ CI 完成后：
 | 编辑器 | 方式 | 地址 |
 |--------|------|------|
 | **VS Code** | [Marketplace](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) | 搜索 **Fund Helper** |
-| **Cursor / Trae / CodeBuddy / Qoder** | VSIX | https://github.com/ChinaCarlos/fund-helper/raw/main/assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix |
+| **Cursor / Trae / CodeBuddy / Qoder** | VSIX | https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.1/fund-helper-vscode-0.1.1.vsix |
 
-仓库内 VSIX：[`vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix`](./vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix)
+Release 页：[`vscode-v0.1.1`](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.1)
+
+仓库 manifest：[`vscode/v0.1.1/manifest.json`](./vscode/v0.1.1/manifest.json)
 
 非 VS Code：`Cmd+Shift+P` → **Extensions: Install from VSIX…**
 
@@ -70,14 +72,14 @@ CI 完成后：
 ### 维护者：更新仓库内 VSIX
 
 ```bash
-./publish-vscode.sh 0.1.0 --local
-git add assets/releases/vscode/v0.1.0/
-git commit -m "chore(vscode): bundle v0.1.0 vsix"
+./publish-vscode.sh 0.1.1 --local
+git add assets/releases/vscode/v0.1.1/
+git commit -m "chore(vscode): bundle v0.1.1 vsix"
 ```
 
 ### 触发 CI / Marketplace
 
 ```bash
-./publish-vscode.sh 0.1.0 --release
-export VSCE_PAT=xxx && ./publish-vscode.sh 0.1.0 --marketplace
+./publish-vscode.sh 0.1.1 --release
+export VSCE_PAT=xxx && ./publish-vscode.sh 0.1.1 --marketplace
 ```

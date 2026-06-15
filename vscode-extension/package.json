@@ -2,7 +2,7 @@
   "name": "fund-helper-vscode",
   "displayName": "Fund Helper",
   "description": "在 VS Code / Cursor 中查看养基宝基金持仓：微信扫码登录，侧边栏展示大盘指数、当日收益与多账户基金列表，涨跌色随编辑器主题切换，无需后端。",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "packageManager": "pnpm@10.12.1",
   "publisher": "fund-helper-org",
   "icon": "media/icon.png",

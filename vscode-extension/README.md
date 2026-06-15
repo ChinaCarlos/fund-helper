@@ -99,17 +99,16 @@ ext install fund-helper-org.fund-helper-vscode
 
 ### Cursor / Trae / CodeBuddy / Qoder：VSIX 安装
 
-**VSIX 下载地址（v0.1.0）：**
+**VSIX 下载地址（v0.1.1）：**
 
 | 来源 | 地址 |
 |------|------|
-| **GitHub 直链（推荐）** | https://github.com/ChinaCarlos/fund-helper/raw/main/assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix |
-| **仓库内路径** | [`assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix`](../assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix) |
-| **GitHub 浏览页** | https://github.com/ChinaCarlos/fund-helper/blob/main/assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix |
+| **GitHub Release（推荐）** | https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.1/fund-helper-vscode-0.1.1.vsix |
+| **Release 页** | [vscode-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.1) |
 
 **安装步骤：**
 
-1. 点击上方 **GitHub 直链** 下载 `fund-helper-vscode-0.1.0.vsix`
+1. 打开 [Release vscode-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.1) 下载 `fund-helper-vscode-0.1.1.vsix`
 2. 打开 Cursor / Trae / CodeBuddy / Qoder
 3. `Cmd+Shift+P`（Windows：`Ctrl+Shift+P`）→ **Extensions: Install from VSIX…**
 4. 选择刚下载的 `.vsix` 文件
@@ -136,8 +135,8 @@ pnpm run build
 
 ```bash
 chmod +x publish-vscode.sh
-./publish-vscode.sh 0.1.0 --local
-# → assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix
+./publish-vscode.sh 0.1.1 --local
+# → assets/releases/vscode/v0.1.1/fund-helper-vscode-0.1.1.vsix
 ```
 
 发版维护者更新版本时，请重新执行 `--local` 并将新 VSIX 提交到 `assets/releases/vscode/v{版本}/`。
@@ -150,27 +149,27 @@ chmod +x publish-vscode.sh
 
 | 模式 | 命令 | 说明 |
 |------|------|------|
-| 本地打包 | `./publish-vscode.sh 0.1.0 --local` | 构建 VSIX 到 `assets/releases/vscode/v0.1.0/` |
-| GitHub Release | `./publish-vscode.sh 0.1.0 --release` | 触发 CI，发布到 Releases（tag `vscode-v0.1.0`） |
-| 下载 CI 产物 | `./publish-vscode.sh 0.1.0 --collect` | 需 `gh auth login` |
-| VS Code Marketplace | `./publish-vscode.sh 0.1.0 --marketplace` | 需 `VSCE_PAT` 环境变量 |
+| 本地打包 | `./publish-vscode.sh 0.1.1 --local` | 构建 VSIX 到 `assets/releases/vscode/v0.1.1/` |
+| GitHub Release | `./publish-vscode.sh 0.1.1 --release` | 触发 CI，发布到 Releases（tag `vscode-v0.1.1`） |
+| 下载 CI 产物 | `./publish-vscode.sh 0.1.1 --collect` | 需 `gh auth login` |
+| VS Code Marketplace | `./publish-vscode.sh 0.1.1 --marketplace` | 需 `VSCE_PAT` 环境变量 |
 
 ### 方式 1：GitHub Release（推荐，无需 Marketplace 账号）
 
 ```bash
 brew install gh && gh auth login
-./publish-vscode.sh 0.1.0 --release
-# 等待 CI → ./publish-vscode.sh 0.1.0 --collect
+./publish-vscode.sh 0.1.1 --release
+# 等待 CI → ./publish-vscode.sh 0.1.1 --collect
 ```
 
 或打 tag：
 
 ```bash
-git tag -a vscode-v0.1.0 -m "VS Code extension 0.1.0"
-git push origin vscode-v0.1.0
+git tag -a vscode-v0.1.1 -m "VS Code extension 0.1.1"
+git push origin vscode-v0.1.1
 ```
 
-下载页：[Releases → vscode-v0.1.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.0)  
+下载页：[Releases → vscode-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.1)  
 CI：[Actions → VS Code Extension Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/vscode-release.yml)
 
 用户安装：下载 `.vsix` → **Install from VSIX…**
@@ -186,7 +185,7 @@ CI：[Actions → VS Code Extension Release](https://github.com/ChinaCarlos/fund
 
 ```bash
 export VSCE_PAT=你的PAT
-./publish-vscode.sh 0.1.0 --marketplace
+./publish-vscode.sh 0.1.1 --marketplace
 ```
 
 上架后扩展页：[marketplace.visualstudio.com · Fund Helper](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode)

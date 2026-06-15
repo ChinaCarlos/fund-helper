@@ -250,9 +250,9 @@ pnpm install
 | 编辑器 | 方式 | 链接 |
 |--------|------|------|
 | **VS Code** | 扩展商店 | [Marketplace · Fund Helper](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) |
-| **Cursor / Trae / CodeBuddy / Qoder** | VSIX 文件 | [下载 VSIX](https://github.com/ChinaCarlos/fund-helper/raw/main/assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix) |
+| **Cursor / Trae / CodeBuddy / Qoder** | VSIX 文件 | [下载 VSIX](https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.1/fund-helper-vscode-0.1.1.vsix) |
 
-VSIX 仓库路径：[`assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix`](./assets/releases/vscode/v0.1.0/fund-helper-vscode-0.1.0.vsix)
+Release 页：[`vscode-v0.1.1`](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.1) · 文件 `fund-helper-vscode-0.1.1.vsix`
 
 非 VS Code 编辑器：`Cmd+Shift+P` → **Extensions: Install from VSIX…** → 选择下载的 `.vsix` → 重载窗口。
 
