@@ -3,3 +3,4 @@ packages:
   - chrome-extension
   - vscode-extension
   - desktop
+  - docs-site

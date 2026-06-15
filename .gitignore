@@ -16,3 +16,5 @@ assets/releases/**/*
 .env
 node_modules/
 dist/
+docs-site/doc_build/
+docs-site/.rspress/

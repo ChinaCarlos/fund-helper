@@ -1,0 +1,55 @@
+/**
+ * Fund Helper 文档主题 — 基于 Rspress CSS 变量
+ * @see https://rspress.rs/zh/ui/vars
+ */
+:where(:root) {
+  --rp-c-brand: #2563eb;
+  --rp-c-brand-light: #3b82f6;
+  --rp-c-brand-lighter: #dbeafe;
+  --rp-c-brand-dark: #1d4ed8;
+  --rp-c-brand-darker: #1e40af;
+  --rp-c-brand-tint: rgba(37, 99, 235, 0.14);
+
+  --rp-c-text-code: #476582;
+  --rp-c-text-code-bg: rgba(37, 99, 235, 0.06);
+}
+
+:where(html:not(.rp-dark)) {
+  --rp-home-hero-secondary-color: #07b360;
+
+  --rp-home-hero-title-bg: linear-gradient(
+    90deg,
+    var(--rp-c-brand-dark) 0%,
+    var(--rp-c-brand-dark) 35%,
+    var(--rp-home-hero-secondary-color) 100%
+  );
+
+  --rp-home-background-bg:
+    radial-gradient(42% 56% at 100% 0%, rgba(37, 99, 235, 0.12) 0%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(42% 80% at 52% 0%, rgba(7, 179, 96, 0.1) 0%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(80% 58% at 0% 0%, rgba(37, 99, 235, 0.08) 0%, rgba(255, 255, 255, 0) 100%),
+    #f8fafc;
+
+  --rp-home-feature-bg: linear-gradient(135deg, #ffffff, rgba(248, 250, 252, 0.85));
+}
+
+:where(html.rp-dark) {
+  --rp-home-hero-secondary-color: #34d399;
+
+  --rp-home-background-bg:
+    radial-gradient(42% 56% at 100% 0%, rgba(37, 99, 235, 0.18) 0%, rgba(18, 18, 18, 0) 100%),
+    radial-gradient(55% 88% at 48% 0%, rgba(0, 0, 0, 0.6) 0%, rgba(18, 18, 18, 0) 90%),
+    radial-gradient(122% 88% at 0% 0%, rgba(30, 64, 175, 0.35) 0%, rgba(18, 18, 18, 0) 100%),
+    #0f1419;
+
+  --rp-home-feature-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.06));
+}
+
+/* 表格与引用块微调 */
+.rp-doc .rp-table th {
+  background: var(--rp-c-bg-soft);
+}
+
+.rp-doc blockquote {
+  border-left-color: var(--rp-c-brand);
+}

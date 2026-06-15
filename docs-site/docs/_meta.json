@@ -1,0 +1,17 @@
+[
+  {
+    "type": "dir-section-header",
+    "name": "guide",
+    "label": "指南"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "clients",
+    "label": "客户端"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "developer",
+    "label": "开发者"
+  }
+]

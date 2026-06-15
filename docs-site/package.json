@@ -1,0 +1,17 @@
+{
+  "name": "fund-helper-docs",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "sync": "node ../scripts/sync-docs-site.mjs",
+    "predev": "pnpm run sync",
+    "dev": "rspress dev",
+    "prebuild": "pnpm run sync",
+    "build": "rspress build",
+    "preview": "rspress preview"
+  },
+  "devDependencies": {
+    "@rspress/core": "^2.0.0"
+  }
+}

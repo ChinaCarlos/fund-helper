@@ -1,0 +1,5 @@
+[
+  { "text": "指南", "link": "/guide/introduction", "activeMatch": "^/guide/" },
+  { "text": "客户端", "link": "/clients/overview", "activeMatch": "^/clients/" },
+  { "text": "开发者", "link": "/developer/architecture", "activeMatch": "^/developer/" }
+]

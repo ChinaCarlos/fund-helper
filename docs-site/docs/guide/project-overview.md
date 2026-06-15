@@ -1,3 +1,7 @@
+---
+title: 项目概览
+---
+
 <div align="center">
 
 # Fund Helper
@@ -42,7 +46,7 @@
 | **VS Code 扩展** | 侧边栏 / 面板 / 状态栏：与浏览器插件相同的持仓视图，适配编辑器主题色 |
 | **桌面端** | Tauri + Rust：单用户本地 SQLite，扫码登录；持仓、收益曲线、飞书/钉钉/企微通知推送、系统托盘 |
 
-详见 [文档中心](https://chinacarlos.github.io/fund-helper/) 或 [chrome-extension/README.md](./chrome-extension/README.md)、[vscode-extension/README.md](./vscode-extension/README.md) 与 [desktop/README.md](./desktop/README.md)。
+详见 [文档中心](https://chinacarlos.github.io/fund-helper/) 或 [chrome-extension/README.md](/clients/chrome-extension)、[vscode-extension/README.md](/clients/vscode-extension) 与 [desktop/README.md](/clients/desktop)。
 
 ## 桌面端下载
 
@@ -50,10 +54,8 @@
 
 | 平台 | 文件 | 下载（CI 完成后） |
 |------|------|-------------------|
-<!-- fund-helper:version:desktop-download -->
 | **macOS（Universal，M + Intel）** | `Fund-Helper-0.1.1-macos.dmg` | [desktop-v0.1.1 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1) |
 | **Windows** | `Fund-Helper-0.1.1-windows-setup.exe` | 同上 Release 页 |
-<!-- /fund-helper:version:desktop-download -->
 
 构建进度：[Actions → Desktop Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml)
 
@@ -74,7 +76,7 @@ chmod +x publish-desktop.sh
 
 构建完成后执行 `./publish-desktop.sh 0.1.0 --collect` 可将产物拉到本地 `assets/releases/`。
 
-详见 [assets/releases/README.md](./assets/releases/README.md)。
+详见 [assets/releases/README.md](/developer/release)。
 
 ## 技术栈
 
@@ -268,12 +270,12 @@ pnpm install
 - 基金列表排序：当日涨幅（交易时段为预估涨幅）/ 当日收益 / 持仓余额，支持正序与倒序
 - 直连养基宝 API，**不依赖** fund-helper 后端与 MongoDB
 
-安装与开发见 [chrome-extension/README.md](./chrome-extension/README.md)。
+安装与开发见 [chrome-extension/README.md](/clients/chrome-extension)。
 
 ### VS Code / Cursor 扩展（`vscode-extension/`）
 
 - 在 **VS Code**、**Cursor**、**Trae**、**CodeBuddy**、**Qoder** 等编辑器内查看养基宝持仓，UI 与浏览器插件对齐
-- 四个入口：活动栏图标、状态栏、底部 Panel Tab、编辑器标题栏（见 [入口示意图](./vscode-extension/docs/entry-points.png)）
+- 四个入口：活动栏图标、状态栏、底部 Panel Tab、编辑器标题栏（见 [入口示意图](/entry-points.png)）
 - 微信扫码登录；登录态保存在扩展 `globalState`
 - 样式适配编辑器明暗主题（`--vscode-charts-red/green` 等）
 - 直连养基宝 API（经 Extension Host 代理），**不依赖** fund-helper 后端与 MongoDB
@@ -283,15 +285,13 @@ pnpm install
 | 编辑器 | 方式 | 链接 |
 |--------|------|------|
 | **VS Code** | 扩展商店 | [Marketplace · Fund Helper](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) |
-<!-- fund-helper:version:vscode-install -->
 | **Cursor / Trae / CodeBuddy / Qoder** | VSIX 文件 | [下载 VSIX](https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.3/fund-helper-vscode-0.1.3.vsix) |
 
 Release 页：[`vscode-v0.1.3`](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) · 文件 `fund-helper-vscode-0.1.3.vsix`
-<!-- /fund-helper:version:vscode-install -->
 
 非 VS Code 编辑器：`Cmd+Shift+P` → **Extensions: Install from VSIX…** → 选择下载的 `.vsix` → 重载窗口。
 
-详见 [vscode-extension/README.md](./vscode-extension/README.md)；架构见 [TECH.md §19](./TECH.md#19-vs-code-扩展架构)。
+详见 [vscode-extension/README.md](/clients/vscode-extension)；架构见 [TECH.md §19](/developer/architecture#19-vs-code-扩展架构)。
 
 ### 桌面端（`desktop/`）
 
@@ -301,7 +301,7 @@ Release 页：[`vscode-v0.1.3`](https://github.com/ChinaCarlos/fund-helper/relea
 - **消息通知**：钉钉 / 飞书 / 企业微信（Webhook 或飞书应用 IM 卡片），手动刷新 / 定时推送
 - 浅色 / 深色主题、系统托盘、单实例
 
-开发与打包见 [desktop/README.md](./desktop/README.md)；安装包见上文 [桌面端下载](#桌面端下载)。
+开发与打包见 [desktop/README.md](/clients/desktop)；安装包见上文 [桌面端下载](#桌面端下载)。
 
 ---
 
@@ -376,7 +376,7 @@ fund-helper/
 | `POST /api/notify/test` | 连通性测试 |
 | `POST /api/notify/push` | 推送持仓收益 |
 
-详见 [TECH.md](./TECH.md)。
+详见 [TECH.md](/developer/architecture)。
 
 ---
 
@@ -408,4 +408,4 @@ docker compose --profile full up -d --build
 - 确认使用 **Chrome / Edge / 360 极速（Chromium 内核）** 加载 `chrome-extension/dist/`
 - 开发模式：`cd chrome-extension && pnpm install && pnpm dev`，在扩展管理页选择 `dist/` 目录
 - 插件直连养基宝，与 Web 应用后端无关；401 时重新扫码登录即可
-- Firefox 暂未专门适配，见 [chrome-extension/README.md](./chrome-extension/README.md#浏览器兼容性)
+- Firefox 暂未专门适配，见 [chrome-extension/README.md](/clients/chrome-extension#浏览器兼容性)
