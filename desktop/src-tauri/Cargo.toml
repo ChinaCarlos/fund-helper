@@ -1,6 +1,6 @@
 [package]
 name = "fund-helper-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "Fund Helper Desktop — 养基宝持仓桌面客户端"
 authors = ["Fund Helper"]
 edition = "2021"

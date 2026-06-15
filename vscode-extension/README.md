@@ -98,16 +98,16 @@ ext install fund-helper-org.fund-helper-vscode
 ### Cursor / Trae / CodeBuddy / Qoder：VSIX 安装
 
 <!-- fund-helper:version:vsix-download -->
-**VSIX 下载地址（v0.1.2）：**
+**VSIX 下载地址（v0.1.3）：**
 
 | 来源 | 地址 |
 |------|------|
-| **GitHub Release（推荐）** | https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.2/fund-helper-vscode-0.1.2.vsix |
-| **Release 页** | [vscode-v0.1.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.2) |
+| **GitHub Release（推荐）** | https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.3/fund-helper-vscode-0.1.3.vsix |
+| **Release 页** | [vscode-v0.1.3](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) |
 
 **安装步骤：**
 
-1. 打开 [Release vscode-v0.1.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.2) 下载 `fund-helper-vscode-0.1.2.vsix`
+1. 打开 [Release vscode-v0.1.3](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) 下载 `fund-helper-vscode-0.1.3.vsix`
 <!-- /fund-helper:version:vsix-download -->
 2. 打开 Cursor / Trae / CodeBuddy / Qoder
 3. `Cmd+Shift+P`（Windows：`Ctrl+Shift+P`）→ **Extensions: Install from VSIX…**

@@ -34,9 +34,9 @@ node scripts/release.mjs all --release    # 两者同时触发 CI
 <!-- fund-helper:version:chrome -->
 | 项 | 链接 |
 |----|------|
-| 当前版本 | `1.0.1`（见 `versions.json`） |
+| 当前版本 | `1.0.2`（见 `versions.json`） |
 | 构建 | [Actions → Chrome Extension Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/chrome-release.yml) |
-| 下载 | [Release chrome-v1.0.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.1) |
+| 下载 | [Release chrome-v1.0.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.2) |
 <!-- /fund-helper:version:chrome -->
 
 **触发 CI：**
@@ -62,14 +62,14 @@ node scripts/version.mjs bump chrome patch   # 或 set chrome 1.0.1
 <!-- fund-helper:version:desktop -->
 | 项 | 链接 |
 |----|------|
-| 当前版本 | `0.1.0` |
+| 当前版本 | `0.1.1` |
 | 构建 | [Actions → Desktop Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml) |
-| 下载 | [Release desktop-v0.1.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.0) |
+| 下载 | [Release desktop-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1) |
 
 | 平台 | 文件名 |
 |------|--------|
-| macOS（Universal） | `Fund-Helper-0.1.0-macos.dmg` |
-| Windows | `Fund-Helper-0.1.0-windows-setup.exe` |
+| macOS（Universal） | `Fund-Helper-0.1.1-macos.dmg` |
+| Windows | `Fund-Helper-0.1.1-windows-setup.exe` |
 <!-- /fund-helper:version:desktop -->
 
 ```bash
@@ -84,9 +84,9 @@ node scripts/version.mjs bump chrome patch   # 或 set chrome 1.0.1
 <!-- fund-helper:version:vscode -->
 | 项 | 链接 |
 |----|------|
-| 当前版本 | `0.1.2` |
+| 当前版本 | `0.1.3` |
 | Marketplace | [Fund Helper](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) |
-| VSIX 下载 | [Release vscode-v0.1.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.2) |
+| VSIX 下载 | [Release vscode-v0.1.3](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) |
 <!-- /fund-helper:version:vscode -->
 
 ```bash
