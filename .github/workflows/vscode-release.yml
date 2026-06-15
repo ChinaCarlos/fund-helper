@@ -54,8 +54,7 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10.12.1
+        # 版本由根目录 package.json 的 packageManager 字段决定，勿在此处重复指定
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

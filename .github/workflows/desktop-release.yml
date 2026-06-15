@@ -14,9 +14,6 @@ on:
 permissions:
   contents: write
 
-env:
-  DESKTOP_VERSION: ${{ github.event.inputs.version || github.ref_name }}
-
 jobs:
   build:
     strategy:
@@ -29,9 +26,6 @@ jobs:
             os_name: windows
 
     runs-on: ${{ matrix.platform }}
-    defaults:
-      run:
-        working-directory: desktop
 
     steps:
       - name: Checkout
@@ -51,6 +45,7 @@ jobs:
 
       - name: Sync version files
         shell: bash
+        working-directory: desktop
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
           node -e "
@@ -67,15 +62,17 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        # 版本由根目录 package.json 的 packageManager 字段决定，勿在此处重复指定
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-          cache-dependency-path: desktop/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile --filter fund-helper-desktop
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -89,34 +86,50 @@ jobs:
         with:
           workspaces: desktop/src-tauri -> target
 
-      - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Build Tauri (macOS universal)
         if: matrix.os_name == 'macos'
+        working-directory: desktop
         run: pnpm tauri build --target universal-apple-darwin
 
       - name: Build Tauri (Windows)
         if: matrix.os_name == 'windows'
+        working-directory: desktop
         run: pnpm tauri build
 
       - name: Rename macOS artifact
         if: matrix.os_name == 'macos'
         shell: bash
+        working-directory: desktop
         run: |
+          set -euo pipefail
           VERSION="${{ steps.ver.outputs.version }}"
-          DMG=$(find src-tauri/target -name '*.dmg' | head -1)
-          mkdir -p ../../artifacts
-          cp "$DMG" "../../artifacts/Fund-Helper-${VERSION}-macos.dmg"
+          DMG="$(find src-tauri/target -name '*.dmg' -type f | head -1)"
+          if [[ -z "$DMG" ]]; then
+            echo "::error::未找到 DMG，列出 src-tauri/target 下的 bundle 目录："
+            find src-tauri/target -type d -name bundle 2>/dev/null | head -20
+            find src-tauri/target -type f \( -name '*.dmg' -o -name '*.app' \) 2>/dev/null | head -20
+            exit 1
+          fi
+          mkdir -p ../artifacts
+          cp "$DMG" "../artifacts/Fund-Helper-${VERSION}-macos.dmg"
+          ls -la ../artifacts/
 
       - name: Rename Windows artifact
         if: matrix.os_name == 'windows'
         shell: pwsh
+        working-directory: desktop
         run: |
+          $ErrorActionPreference = 'Stop'
           $version = "${{ steps.ver.outputs.version }}"
-          $exe = Get-ChildItem -Path src-tauri/target -Recurse -Include *setup*.exe,*.msi | Select-Object -First 1
-          New-Item -ItemType Directory -Force -Path ../../artifacts | Out-Null
-          Copy-Item $exe.FullName "../../artifacts/Fund-Helper-${version}-windows-setup.exe"
+          $exe = Get-ChildItem -Path src-tauri/target -Recurse -Include *setup*.exe | Select-Object -First 1
+          if (-not $exe) {
+            Write-Error "未找到 Windows 安装包（*setup*.exe）"
+            Get-ChildItem -Path src-tauri/target -Recurse -Include *.exe,*.msi | Select-Object -First 20
+            exit 1
+          }
+          New-Item -ItemType Directory -Force -Path ../artifacts | Out-Null
+          Copy-Item $exe.FullName "../artifacts/Fund-Helper-${version}-windows-setup.exe"
+          Get-ChildItem ../artifacts
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
