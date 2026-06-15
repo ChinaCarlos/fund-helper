@@ -10,6 +10,7 @@
     "build:web": "pnpm --filter fund-helper-web build",
     "build:chrome": "pnpm --filter fund-helper-extension build",
     "build:vscode": "pnpm --filter fund-helper-vscode build",
+    "build:jetbrains:webview": "pnpm --filter fund-helper-jetbrains-webview run build:webview",
     "build:desktop": "pnpm --filter fund-helper-desktop tauri:build",
     "dev:docs": "pnpm --filter fund-helper-docs dev",
     "build:docs": "pnpm --filter fund-helper-docs build",

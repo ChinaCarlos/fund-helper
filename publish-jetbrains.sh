@@ -63,10 +63,12 @@ ensure_java() {
 build_zip() {
   local out_file="$1"
   ensure_java
-  log "安装 webview 依赖…"
-  (cd "$EXT" && pnpm install --frozen-lockfile)
+  log "安装 monorepo 依赖（含 jetbrains webview）…"
+  (cd "$ROOT" && pnpm install --frozen-lockfile)
+  log "构建 webview…"
+  (cd "$ROOT" && pnpm --filter fund-helper-jetbrains-webview run build:webview)
   log "Gradle buildPlugin…"
-  (cd "$EXT" && ./gradlew buildPlugin --no-daemon -q)
+  (cd "$EXT" && ./gradlew buildPlugin --no-daemon -q -x buildWebview -x installWebviewDeps)
   local built="$EXT/build/distributions/$ZIP_NAME"
   [[ -f "$built" ]] || die "未找到构建产物: $built"
   mkdir -p "$(dirname "$out_file")"

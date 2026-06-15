@@ -28,7 +28,7 @@ title: 常见问题
 
 - 需 **IDE 2024.2+** 且 JCEF 可用（Settings → 搜索 JCEF）
 - 首次打开侧边栏会加载 JCEF Webview，稍等数秒
-- 开发构建需先 `pnpm run build:webview`，再 `./gradlew runIde`
+- 开发构建：在仓库根目录 `pnpm install`，再 `pnpm --filter fund-helper-jetbrains-webview run build:webview`，最后在 `jetbrains-extension/` 运行 `./gradlew runIde`
 
 ### 底部面板关闭后无法再次打开
 

@@ -46,7 +46,7 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-          cache-dependency-path: jetbrains-extension/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -56,22 +56,17 @@ jobs:
           cache: gradle
           cache-dependency-path: jetbrains-extension/**/gradle*
 
-      - name: Install webview dependencies
-        working-directory: jetbrains-extension
-        env:
-          NODE_ENV: development
-        run: pnpm install --frozen-lockfile --config.production=false
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build webview
-        working-directory: jetbrains-extension
-        run: pnpm run build:webview
+        run: pnpm --filter fund-helper-jetbrains-webview run build:webview
 
       - name: Build plugin
         working-directory: jetbrains-extension
         env:
           CI: true
-          NODE_ENV: development
-        run: ./gradlew buildPlugin --no-daemon
+        run: ./gradlew buildPlugin --no-daemon -x buildWebview -x installWebviewDeps
 
       - name: Verify artifact
         shell: bash

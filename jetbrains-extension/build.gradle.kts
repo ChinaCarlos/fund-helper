@@ -44,6 +44,8 @@ intellijPlatform {
 }
 
 tasks {
+    val repoRoot = rootDir.parentFile
+
     runIde {
         jvmArgs("-Xmx2048m")
     }
@@ -52,27 +54,26 @@ tasks {
     }
     register<Exec>("installWebviewDeps") {
         group = "build"
-        description = "Install webview npm dependencies when node_modules is missing"
-        workingDir = projectDir
-        onlyIf { !file("node_modules/.pnpm").exists() }
-        commandLine(
-            "pnpm", "install", "--frozen-lockfile", "--config.production=false",
-        )
+        description = "Install webview npm dependencies via root pnpm workspace"
+        workingDir = repoRoot
+        onlyIf {
+            !file("node_modules/.bin/vite").exists()
+        }
+        commandLine("pnpm", "install", "--frozen-lockfile", "--filter", "fund-helper-jetbrains-webview")
+        inputs.file("${repoRoot}/pnpm-lock.yaml")
         inputs.file("package.json")
-        inputs.file("pnpm-lock.yaml")
-        outputs.dir("node_modules")
     }
 
     register<Exec>("buildWebview") {
         group = "build"
         description = "Build React webview assets into src/main/resources/webview"
         dependsOn("installWebviewDeps")
-        workingDir = projectDir
-        commandLine("pnpm", "run", "build:webview")
+        workingDir = repoRoot
+        commandLine("pnpm", "--filter", "fund-helper-jetbrains-webview", "run", "build:webview")
         inputs.dir("webview/src")
         inputs.file("vite.webview.config.ts")
         inputs.file("package.json")
-        inputs.file("pnpm-lock.yaml")
+        inputs.file("${repoRoot}/pnpm-lock.yaml")
         outputs.dir("src/main/resources/webview")
         isIgnoreExitValue = false
     }

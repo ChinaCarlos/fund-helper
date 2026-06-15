@@ -2078,8 +2078,11 @@ PortfolioView refresh/logout   →  PortfolioFetcher / SessionStorageService
 ### 20.7 开发与构建
 
 ```bash
+# 仓库根目录（jetbrains-extension 已纳入 pnpm workspace）
+pnpm install
+pnpm --filter fund-helper-jetbrains-webview run build:webview
+
 cd jetbrains-extension
-pnpm install && pnpm run build:webview
 ./gradlew runIde          # 本地沙箱（需本地 IDE 或 Gradle 依赖）
 ./gradlew buildPlugin     # → build/distributions/fund-helper-jetbrains-{version}.zip
 ```
@@ -2092,7 +2095,7 @@ pnpm install && pnpm run build:webview
 | GitHub Release | `./publish-jetbrains.sh --release`（tag `jetbrains-v*`） |
 | 下载 CI 产物 | `./publish-jetbrains.sh --collect` |
 
-CI：`.github/workflows/jetbrains-release.yml`（JDK 17 + Gradle；`CI=true` 时拉取 IntelliJ Community 2024.2 编译依赖）。
+CI：`.github/workflows/jetbrains-release.yml`（仓库根 `pnpm install` + filter 构建 webview；JDK 17 + Gradle；`CI=true` 时拉取 IntelliJ Community 2024.2 编译依赖）。
 
 版本号：`versions.json` → `scripts/version.mjs` 同步至 `build.gradle.kts` 与 `package.json`。
 

@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {
-    "build:webview": "pnpm exec vite build -c vite.webview.config.ts"
+    "build:webview": "vite build -c vite.webview.config.ts"
   },
   "dependencies": {
     "qrcode": "^1.5.4",

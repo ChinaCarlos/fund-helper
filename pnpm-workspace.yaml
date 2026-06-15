@@ -2,5 +2,6 @@ packages:
   - web
   - chrome-extension
   - vscode-extension
+  - jetbrains-extension
   - desktop
   - docs-site

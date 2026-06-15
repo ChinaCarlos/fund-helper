@@ -77,9 +77,11 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ```bash
 cd jetbrains-extension
 
-pnpm install
-pnpm run build:webview
-./gradlew runIde    # 沙箱 IDE（本地需安装 WebStorm/IDEA，或 CI 拉取 IDE 依赖）
+# 在仓库根目录安装依赖（jetbrains-extension 已纳入 pnpm workspace）
+cd .. && pnpm install && pnpm --filter fund-helper-jetbrains-webview run build:webview
+
+cd jetbrains-extension
+./gradlew runIde    # 沙箱 IDE
 ```
 
 `build.gradle.kts` 优先使用 `/Applications/WebStorm.app`；不存在或 `CI=true` 时从 Maven 拉取 IntelliJ Community 2024.2.6。
@@ -87,7 +89,8 @@ pnpm run build:webview
 ### Webview 热更新
 
 ```bash
-pnpm run build:webview   # 修改 webview/src 后重新构建
+# 在仓库根目录
+pnpm --filter fund-helper-jetbrains-webview run build:webview
 # 在 Sandbox IDE 中重启插件或重载 Tool Window
 ```
 
@@ -119,11 +122,11 @@ jetbrains-extension/
 ./publish-jetbrains.sh --collect    # 下载 CI 产物
 ```
 
-**手动**（在 `jetbrains-extension/` 目录）：
+**手动**（需先在仓库根目录 `pnpm install`）：
 
 ```bash
-pnpm run build:webview
-./gradlew buildPlugin
+pnpm --filter fund-helper-jetbrains-webview run build:webview   # 仓库根目录
+cd jetbrains-extension && ./gradlew buildPlugin
 # → build/distributions/fund-helper-jetbrains-0.1.0.zip
 ```
 

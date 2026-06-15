@@ -103,8 +103,11 @@ node scripts/version.mjs bump jetbrains patch
 ## 开发
 
 ```bash
+# 仓库根目录
+pnpm install
+pnpm --filter fund-helper-jetbrains-webview run build:webview
+
 cd jetbrains-extension
-pnpm install && pnpm run build:webview
 ./gradlew runIde
 ```
 
