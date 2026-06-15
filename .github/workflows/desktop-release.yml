@@ -78,16 +78,26 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.88
+          # 与 desktop/rust-toolchain.toml 一致；Universal 需在同一 toolchain 上安装双架构 target
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Verify macOS Rust targets
+        if: matrix.os_name == 'macos'
+        working-directory: desktop
+        run: |
+          rustup target list --installed
+          rustup target list --installed | grep -q 'x86_64-apple-darwin'
+          rustup target list --installed | grep -q 'aarch64-apple-darwin'
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: desktop/src-tauri -> target
 
-      - name: Build Tauri (macOS Apple Silicon)
+      - name: Build Tauri (macOS Universal)
         if: matrix.os_name == 'macos'
         working-directory: desktop
-        run: pnpm tauri build
+        run: pnpm tauri build --target universal-apple-darwin
 
       - name: Build Tauri (Windows)
         if: matrix.os_name == 'windows'
@@ -170,7 +180,7 @@ jobs:
 
             | 平台 | 文件 |
             |------|------|
-            | macOS（Apple Silicon / M 系列） | `Fund-Helper-${{ steps.ver.outputs.version }}-macos.dmg` |
+            | macOS（Universal，Apple Silicon + Intel） | `Fund-Helper-${{ steps.ver.outputs.version }}-macos.dmg` |
             | Windows（x64） | `Fund-Helper-${{ steps.ver.outputs.version }}-windows-setup.exe` |
 
             安装后使用微信扫码登录养基宝即可查看持仓；通知配置见设置页。

@@ -1,6 +1,6 @@
 # 桌面端发布产物
 
-安装包由 **GitHub Actions** 在云端构建（macOS Apple Silicon + Windows x64）。
+安装包由 **GitHub Actions** 在云端构建（macOS Universal + Windows x64）。
 
 > **Releases 页为何是空的？**  
 > [github.com/ChinaCarlos/fund-helper/releases](https://github.com/ChinaCarlos/fund-helper/releases) 只有在 **Desktop Release** workflow **成功跑完** 后才会出现安装包。Workflow 不会随普通 commit 自动触发，需打 tag 或手动 Run workflow。
