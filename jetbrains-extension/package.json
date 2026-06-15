@@ -1,0 +1,22 @@
+{
+  "name": "fund-helper-jetbrains-webview",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "build:webview": "vite build -c vite.webview.config.ts"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  },
+  "version": "0.1.0"
+}

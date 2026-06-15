@@ -1,0 +1,9 @@
+build/
+.idea/
+.intellijPlatform/
+.kotlin/
+*.iml
+.gradle/
+out/
+node_modules/
+src/main/resources/webview/assets/

@@ -1,0 +1,59 @@
+<idea-plugin>
+  <id>com.fundhelper.jetbrains</id>
+  <name>Fund Helper</name>
+  <vendor email="support@fund-helper.dev" url="https://github.com/ChinaCarlos/fund-helper">Fund Helper</vendor>
+
+  <description><![CDATA[
+    在 JetBrains IDE 中查看养基宝基金持仓：微信扫码登录，侧边栏/底部面板展示大盘指数、当日收益与多账户基金列表，无需部署 fund-helper 后端。
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceImplementation="com.fundhelper.service.FundHelperService"/>
+    <applicationService serviceImplementation="com.fundhelper.session.SessionStorageService"/>
+
+    <projectService serviceImplementation="com.fundhelper.ui.FundHelperBottomPanelManager"/>
+
+    <toolWindow id="Fund Helper"
+                anchor="left"
+                factoryClass="com.fundhelper.ui.FundHelperSidebarToolWindowFactory"
+                icon="/icons/fund-helper.svg"
+                secondary="false"/>
+
+    <toolWindow id="Fund Helper Panel"
+                anchor="bottom"
+                factoryClass="com.fundhelper.ui.FundHelperBottomToolWindowFactory"
+                icon="/icons/fund-helper.svg"
+                secondary="true"/>
+
+    <statusBarWidgetFactory id="FundHelperStatusBar"
+                            implementation="com.fundhelper.statusbar.FundHelperStatusBarWidgetFactory"/>
+
+    <postStartupActivity implementation="com.fundhelper.FundHelperStartupActivity"/>
+  </extensions>
+
+  <actions>
+    <group id="FundHelper.MainGroup" text="Fund Helper" popup="false">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+      <action id="FundHelper.ShowSidebar"
+              class="com.fundhelper.actions.ShowSidebarAction"
+              text="Fund Helper"
+              description="打开侧边栏持仓面板"/>
+      <action id="FundHelper.ShowBottomPanel"
+              class="com.fundhelper.actions.ShowBottomPanelAction"
+              text="Fund Helper: 打开底部面板"
+              description="打开底部持仓面板"/>
+      <action id="FundHelper.Refresh"
+              class="com.fundhelper.actions.RefreshAction"
+              text="Fund Helper: 刷新持仓"
+              description="重新拉取养基宝数据"/>
+    </group>
+
+    <action id="FundHelper.ShowSidebar.Main"
+            class="com.fundhelper.actions.ShowSidebarAction"
+            text="Fund Helper">
+      <add-to-group group-id="MainMenu" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>

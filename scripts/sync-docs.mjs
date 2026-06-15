@@ -111,6 +111,51 @@ function vscodeReleasesSection(version) {
 | VSIX 下载 | [Release ${tag}](https://github.com/${GITHUB_REPO}/releases/tag/${tag}) |`;
 }
 
+function jetbrainsReleasesSection(version) {
+  const tag = `jetbrains-v${version}`;
+  return `| 项 | 链接 |
+|----|------|
+| 当前版本 | \`${version}\`（见 \`versions.json\`） |
+| 构建 | [Actions → JetBrains Plugin Release](https://github.com/${GITHUB_REPO}/actions/workflows/jetbrains-release.yml) |
+| 下载 | [Release ${tag}](https://github.com/${GITHUB_REPO}/releases/tag/${tag}) |`;
+}
+
+function jetbrainsReadmeZip(version) {
+  const tag = `jetbrains-v${version}`;
+  const zip = `fund-helper-jetbrains-${version}.zip`;
+  return `**插件包下载（v${version}）：**
+
+| 来源 | 地址 |
+|------|------|
+| **GitHub Release（推荐）** | https://github.com/${GITHUB_REPO}/releases/download/${tag}/${zip} |
+| **Release 页** | [${tag}](https://github.com/${GITHUB_REPO}/releases/tag/${tag}) |
+
+安装：**Settings → Plugins → ⚙ → Install Plugin from Disk…** → 选择 \`${zip}\``;
+}
+
+function jetbrainsInstallRows(version) {
+  const tag = `jetbrains-v${version}`;
+  const zip = `fund-helper-jetbrains-${version}.zip`;
+  return `| **IntelliJ IDEA / WebStorm / PyCharm 等** | 插件 zip | [下载 zip](https://github.com/${GITHUB_REPO}/releases/download/${tag}/${zip}) |
+
+Release 页：[\`${tag}\`](https://github.com/${GITHUB_REPO}/releases/tag/${tag}) · 文件 \`${zip}\``;
+}
+
+function jetbrainsQuickStartRow(version) {
+  const tag = `jetbrains-v${version}`;
+  return `| JetBrains | [jetbrains-v${version}](https://github.com/${GITHUB_REPO}/releases/tag/${tag}) zip → **Settings → Plugins → Install Plugin from Disk…** |`;
+}
+
+function readmeClientTableRow(version) {
+  const tag = `jetbrains-v${version}`;
+  return `| JetBrains 插件 | \`${version}\` | [JetBrains Release CI](https://github.com/${GITHUB_REPO}/actions/workflows/jetbrains-release.yml) | [${tag}](https://github.com/${GITHUB_REPO}/releases/tag/${tag}) |`;
+}
+
+function jetbrainsOverviewRow(version) {
+  const tag = `jetbrains-v${version}`;
+  return `| **JetBrains** | ${version} | [${tag} Release](https://github.com/${GITHUB_REPO}/releases/tag/${tag}) |`;
+}
+
 function updateWorkflowDefault(workflowFile, version) {
   const abs = path.join(ROOT, workflowFile);
   if (!fs.existsSync(abs)) return;
@@ -136,13 +181,25 @@ export function syncAllDocs(versions) {
 
   replaceBlock('vscode-extension/README.md', 'vsix-download', vscodeReadmeVsix(versions.vscode));
 
+  replaceBlock('jetbrains-extension/README.md', 'plugin-download', jetbrainsReadmeZip(versions.jetbrains));
+
   replaceBlock('assets/releases/README.md', 'chrome', chromeReleasesSection(versions.chrome));
   replaceBlock('assets/releases/README.md', 'desktop', desktopReleasesSection(versions.desktop));
   replaceBlock('assets/releases/README.md', 'vscode', vscodeReleasesSection(versions.vscode));
+  replaceBlock('assets/releases/README.md', 'jetbrains', jetbrainsReleasesSection(versions.jetbrains));
+
+  replaceBlock('README.md', 'jetbrains-client', readmeClientTableRow(versions.jetbrains));
+  replaceBlock('README.md', 'jetbrains-install', jetbrainsInstallRows(versions.jetbrains));
+
+  replaceBlock('docs-site/docs/clients/overview.md', 'jetbrains-row', jetbrainsOverviewRow(versions.jetbrains));
+  replaceBlock('docs-site/docs/clients/jetbrains-extension.md', 'plugin-download', jetbrainsReadmeZip(versions.jetbrains));
+  replaceBlock('docs-site/docs/guide/quick-start.md', 'jetbrains-quick-start', jetbrainsQuickStartRow(versions.jetbrains));
+  replaceBlock('docs-site/docs/developer/release.md', 'jetbrains', jetbrainsReleasesSection(versions.jetbrains));
 
   updateWorkflowDefault('.github/workflows/chrome-release.yml', versions.chrome);
   updateWorkflowDefault('.github/workflows/vscode-release.yml', versions.vscode);
   updateWorkflowDefault('.github/workflows/desktop-release.yml', versions.desktop);
+  updateWorkflowDefault('.github/workflows/jetbrains-release.yml', versions.jetbrains);
 }
 
 /** 仅同步某一产品相关文档（仍会刷新 workflow 中该产品默认值） */

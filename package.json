@@ -22,6 +22,7 @@
     "version:bump": "node scripts/version.mjs bump",
     "release:extensions": "node scripts/release.mjs",
     "release:chrome": "./publish-chrome.sh",
-    "release:vscode": "./publish-vscode.sh"
+    "release:vscode": "./publish-vscode.sh",
+    "release:jetbrains": "./publish-jetbrains.sh"
   }
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 客户端版本统一管理（chrome / vscode / desktop）
+ * 客户端版本统一管理（chrome / vscode / desktop / jetbrains）
  *
  * 用法:
  *   node scripts/version.mjs list
@@ -46,6 +46,15 @@ const PRODUCTS = {
       cargoToml: 'desktop/src-tauri/Cargo.toml',
     },
   },
+  jetbrains: {
+    label: 'JetBrains 插件',
+    tagPrefix: 'jetbrains-v',
+    artifactPrefix: 'fund-helper-jetbrains',
+    paths: {
+      packageJson: 'jetbrains-extension/package.json',
+      buildGradle: 'jetbrains-extension/build.gradle.kts',
+    },
+  },
 };
 
 function readJson(filePath) {
@@ -75,7 +84,7 @@ function die(message) {
 function usage() {
   console.log(`用法:
   node scripts/version.mjs list
-  node scripts/version.mjs get <chrome|vscode|desktop>
+  node scripts/version.mjs get <chrome|vscode|desktop|jetbrains>
   node scripts/version.mjs set <product> <semver>
   node scripts/version.mjs bump <product> patch|minor|major [--print]
   node scripts/version.mjs sync [product|all]
@@ -143,6 +152,17 @@ function setCargoVersion(relPath, version) {
   fs.writeFileSync(abs, next);
 }
 
+function setGradleVersion(relPath, version) {
+  const abs = path.join(ROOT, relPath);
+  const text = fs.readFileSync(abs, 'utf8');
+  const re = /^version = "[^"]*"/m;
+  if (!re.test(text)) {
+    die(`无法在 ${relPath} 中找到 version 字段`);
+  }
+  const next = text.replace(re, `version = "${version}"`);
+  fs.writeFileSync(abs, next);
+}
+
 function syncProduct(product, version) {
   const meta = PRODUCTS[product];
   const { paths } = meta;
@@ -154,6 +174,9 @@ function syncProduct(product, version) {
   }
   if (paths.cargoToml) {
     setCargoVersion(paths.cargoToml, version);
+  }
+  if (paths.buildGradle) {
+    setGradleVersion(paths.buildGradle, version);
   }
 
   console.log(`  ✓ ${product} → ${version}`);

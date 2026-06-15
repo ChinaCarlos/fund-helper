@@ -23,6 +23,8 @@ pnpm preview:docs   # 预览 doc_build/
 
 `predev` / `prebuild` 会自动执行 `scripts/sync-docs-site.mjs`，将根目录 `README.md`、`TECH.md`、`API_README.md` 及各客户端 README 同步到 `docs/`。
 
+JetBrains 插件用户文档为手写页 `docs/clients/jetbrains-extension.md`（版本号由 `scripts/sync-docs.mjs` 维护），不同步 `jetbrains-extension/README.md` 全文。
+
 ## 部署
 
 推送 `main` 后由 [`.github/workflows/docs.yml`](../.github/workflows/docs.yml) 部署至 GitHub Pages：

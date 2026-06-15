@@ -44,6 +44,9 @@ pnpm install
 |--------|------|
 | Chrome | 下载 [chrome-v1.0.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.2) zip → 解压 → `chrome://extensions` 加载 |
 | VS Code | [Marketplace](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) 或 [VSIX](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) |
+<!-- fund-helper:version:jetbrains-quick-start -->
+| JetBrains | [jetbrains-v0.1.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.0) zip → **Settings → Plugins → Install Plugin from Disk…** |
+<!-- /fund-helper:version:jetbrains-quick-start -->
 | Desktop | [desktop-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1) 下载 DMG / exe |
 
 各客户端详细说明见 [客户端概览](/clients/overview)。

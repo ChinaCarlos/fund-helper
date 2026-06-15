@@ -13,6 +13,7 @@ title: 项目概览
 [![Chrome Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/chrome-release.yml/badge.svg)](https://github.com/ChinaCarlos/fund-helper/actions/workflows/chrome-release.yml)
 [![VS Code Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/vscode-release.yml/badge.svg)](https://github.com/ChinaCarlos/fund-helper/actions/workflows/vscode-release.yml)
 [![Desktop Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml/badge.svg)](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml)
+[![JetBrains Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/jetbrains-release.yml/badge.svg)](https://github.com/ChinaCarlos/fund-helper/actions/workflows/jetbrains-release.yml)
 [![Docs](https://github.com/ChinaCarlos/fund-helper/actions/workflows/docs.yml/badge.svg)](https://github.com/ChinaCarlos/fund-helper/actions/workflows/docs.yml)
 
 **[📖 文档中心](https://chinacarlos.github.io/fund-helper/)** · **[⬇️ Releases](https://github.com/ChinaCarlos/fund-helper/releases)** · **[⭐ 给项目 Star](https://github.com/ChinaCarlos/fund-helper/stargazers)**
@@ -27,33 +28,37 @@ title: 项目概览
 
 ## 客户端版本与下载
 
-| 客户端 | 版本 | 构建 | 下载 |
-|--------|------|------|------|
-| Chrome 插件 | `1.0.2` | [Chrome Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/chrome-release.yml) | [chrome-v1.0.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.2) |
-| VS Code 扩展 | `0.1.3` | [VS Code Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/vscode-release.yml) | [Marketplace](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) · [VSIX](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) |
-| 桌面端 | `0.1.1` | [Desktop Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml) | [desktop-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1) |
+| 客户端       | 版本    | 构建                                                                                                   | 下载                                                                                                                                                                                  |
+| ------------ | ------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chrome 插件  | `1.0.2` | [Chrome Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/chrome-release.yml)   | [chrome-v1.0.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.2)                                                                                                |
+| VS Code 扩展 | `0.1.3` | [VS Code Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/vscode-release.yml)  | [Marketplace](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) · [VSIX](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) |
+| 桌面端       | `0.1.1` | [Desktop Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml) | [desktop-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1)                                                                                              |
 
-发版命令：`./publish-chrome.sh --release` · `./publish-vscode.sh --release` · `./publish-desktop.sh --release`（详见 [文档 · 发版与下载](https://chinacarlos.github.io/fund-helper/developer/release)）
+| JetBrains 插件 | `0.1.0` | [JetBrains Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/jetbrains-release.yml) | [jetbrains-v0.1.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.0) |
+
+发版命令：`./publish-chrome.sh --release` · `./publish-vscode.sh --release` · `./publish-jetbrains.sh --release` · `./publish-desktop.sh --release`（详见 [文档 · 发版与下载](https://chinacarlos.github.io/fund-helper/developer/release)）
 
 ---
 
-## 四种使用方式
+## 五种使用方式
 
-| 方式 | 说明 |
-|------|------|
-| **Web 应用** | 完整功能：持仓、市场排行、板块热力图、通知推送、多用户管理 |
-| **浏览器插件** | 轻量 Popup：微信扫码登录养基宝，工具栏一键查看持仓与当日收益（无需后端） |
-| **VS Code 扩展** | 侧边栏 / 面板 / 状态栏：与浏览器插件相同的持仓视图，适配编辑器主题色 |
-| **桌面端** | Tauri + Rust：单用户本地 SQLite，扫码登录；持仓、收益曲线、飞书/钉钉/企微通知推送、系统托盘 |
+| 方式               | 说明                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| **Web 应用**       | 完整功能：持仓、市场排行、板块热力图、通知推送、多用户管理                                  |
+| **浏览器插件**     | 轻量 Popup：微信扫码登录养基宝，工具栏一键查看持仓与当日收益（无需后端）                    |
+| **VS Code 扩展**   | 侧边栏 / 面板 / 状态栏：与浏览器插件相同的持仓视图，适配编辑器主题色                        |
+| **JetBrains 插件** | 左侧 Tool Window 登录/持仓；状态栏右下角显示当日收益，**点击打开底部面板**查看完整详情；UI 与 VS Code 扩展同源 |
+| **桌面端**         | Tauri + Rust：单用户本地 SQLite，扫码登录；持仓、收益曲线、飞书/钉钉/企微通知推送、系统托盘 |
 
-详见 [文档中心](https://chinacarlos.github.io/fund-helper/) 或 [chrome-extension/README.md](/clients/chrome-extension)、[vscode-extension/README.md](/clients/vscode-extension) 与 [desktop/README.md](/clients/desktop)。
+详见 [文档中心](https://chinacarlos.github.io/fund-helper/) 或 [chrome-extension/README.md](/clients/chrome-extension)、[vscode-extension/README.md](/clients/vscode-extension)、[jetbrains-extension/README.md](/clients/jetbrains-extension) 与 [desktop/README.md](/clients/desktop)。
 
 ## 桌面端下载
 
 > **说明**：安装包由 GitHub Actions 构建并发布到 [Releases](https://github.com/ChinaCarlos/fund-helper/releases)。**首次发布前该页面为空**；需先 [触发构建](#触发桌面端-ci-构建) 并等待 workflow 完成（约 15–25 分钟）。
 
 | 平台 | 文件 | 下载（CI 完成后） |
-|------|------|-------------------|
+| ---- | ---- | ----------------- |
+
 | **macOS（Universal，M + Intel）** | `Fund-Helper-0.1.1-macos.dmg` | [desktop-v0.1.1 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1) |
 | **Windows** | `Fund-Helper-0.1.1-windows-setup.exe` | 同上 Release 页 |
 
@@ -80,14 +85,15 @@ chmod +x publish-desktop.sh
 
 ## 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 后端 | Python 3.12 · FastAPI · httpx |
-| 前端 | React 19 · TypeScript · Rsbuild · Ant Design · pnpm（`web/`） |
-| 浏览器插件 | CRXJS · Vite · React 19 · TypeScript · Manifest V3 |
+| 层级         | 技术                                                                  |
+| ------------ | --------------------------------------------------------------------- |
+| 后端         | Python 3.12 · FastAPI · httpx                                         |
+| 前端         | React 19 · TypeScript · Rsbuild · Ant Design · pnpm（`web/`）         |
+| 浏览器插件   | CRXJS · Vite · React 19 · TypeScript · Manifest V3                    |
 | VS Code 扩展 | Extension Host · WebviewView · React 19 · Vite（`vscode-extension/`） |
-| 桌面端 | Tauri v2 · Rust · React 19 · Tailwind v4（`desktop/`） |
-| 部署 | Docker · docker compose |
+| JetBrains 插件 | Kotlin · JCEF · React 19 · Vite · Gradle（`jetbrains-extension/`） |
+| 桌面端       | Tauri v2 · Rust · React 19 · Tailwind v4（`desktop/`）                |
+| 部署         | Docker · docker compose                                               |
 
 ## 环境要求
 
@@ -110,10 +116,10 @@ chmod +x publish-desktop.sh
 
 MongoDB **打包在项目 Docker 配置里**，无需本机单独安装数据库。
 
-| 模式 | 命令 | 应用 | MongoDB | 数据卷 |
-|------|------|------|---------|--------|
-| **本地开发** | `./dev-infra.sh` + `./start.sh` | 本机 `:8000` + `:3000` | `mongo-dev` → `localhost:27017` | `mongo_dev_data` |
-| **Docker 部署** | `docker compose --profile full up -d --build` | 容器 `:8080` | `mongo`（容器网络内） | `mongo_data` |
+| 模式            | 命令                                          | 应用                   | MongoDB                         | 数据卷           |
+| --------------- | --------------------------------------------- | ---------------------- | ------------------------------- | ---------------- |
+| **本地开发**    | `./dev-infra.sh` + `./start.sh`               | 本机 `:8000` + `:3000` | `mongo-dev` → `localhost:27017` | `mongo_dev_data` |
+| **Docker 部署** | `docker compose --profile full up -d --build` | 容器 `:8080`           | `mongo`（容器网络内）           | `mongo_data`     |
 
 两套数据**完全隔离**，可同时运行（`:8080` Docker 应用 + `:3000` 本地前端各用各库）。
 
@@ -138,20 +144,20 @@ docker compose --profile full logs -f app
 
 浏览器打开 http://localhost:8080 ，使用默认管理员账号登录：
 
-| 项 | 默认值 |
-|----|--------|
-| 用户名 | `admin` |
-| 密码 | `123456` |
+| 项     | 默认值   |
+| ------ | -------- |
+| 用户名 | `admin`  |
+| 密码   | `123456` |
 
 可通过环境变量 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 修改（见 `docker-compose.yml` 或 `.env.docker.example`）。
 
 登录后可访问市场排行等页面；**持仓页需额外绑定养基宝**（微信扫码，见首页提示）。
 
-| 项 | 说明 |
-|----|------|
-| 应用镜像 | `carloscca/fund-helper:latest` |
-| 数据库 | 内置 MongoDB 7，数据卷 `mongo_data` |
-| 停止 | `docker compose --profile full down` |
+| 项       | 说明                                    |
+| -------- | --------------------------------------- |
+| 应用镜像 | `carloscca/fund-helper:latest`          |
+| 数据库   | 内置 MongoDB 7，数据卷 `mongo_data`     |
+| 停止     | `docker compose --profile full down`    |
 | 清除数据 | `docker compose --profile full down -v` |
 
 > 镜像为公开包时可直接拉取；若仓库设为私有，需先 `docker login`（Docker Hub 用户名 + Access Token）。
@@ -226,11 +232,11 @@ pnpm install
 ./start.sh
 ```
 
-| 修改位置 | 是否需要重启 |
-|----------|--------------|
-| `backend/` | 是 |
-| `web/src/` | 是 |
-| 仅文档 | 否 |
+| 修改位置   | 是否需要重启 |
+| ---------- | ------------ |
+| `backend/` | 是           |
+| `web/src/` | 是           |
+| 仅文档     | 否           |
 
 ---
 
@@ -282,9 +288,10 @@ pnpm install
 
 **安装：**
 
-| 编辑器 | 方式 | 链接 |
-|--------|------|------|
+| 编辑器      | 方式     | 链接                                                                                                                |
+| ----------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
 | **VS Code** | 扩展商店 | [Marketplace · Fund Helper](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) |
+
 | **Cursor / Trae / CodeBuddy / Qoder** | VSIX 文件 | [下载 VSIX](https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.3/fund-helper-vscode-0.1.3.vsix) |
 
 Release 页：[`vscode-v0.1.3`](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) · 文件 `fund-helper-vscode-0.1.3.vsix`
@@ -292,6 +299,30 @@ Release 页：[`vscode-v0.1.3`](https://github.com/ChinaCarlos/fund-helper/relea
 非 VS Code 编辑器：`Cmd+Shift+P` → **Extensions: Install from VSIX…** → 选择下载的 `.vsix` → 重载窗口。
 
 详见 [vscode-extension/README.md](/clients/vscode-extension)；架构见 [TECH.md §19](/developer/architecture#19-vs-code-扩展架构)。
+
+### JetBrains IDE 插件（`jetbrains-extension/`）
+
+- 在 **IntelliJ IDEA**、**WebStorm**、**PyCharm**、**GoLand** 等 IDE 内查看养基宝持仓，UI 与 VS Code 扩展同源（React + JCEF）
+- **左侧 Tool Window**：登录 + 持仓主界面
+- **状态栏（右下角）**：显示当日收益与涨幅；**点击打开底部 Fund Helper Panel**
+- **底部 Tool Window**：默认隐藏，由状态栏唤起；关闭后可再次点击状态栏打开
+- 背景与文字跟随 IDE 主题（LaF 注入）；**涨跌数字固定红涨绿跌**
+- 直连养基宝 API（Kotlin 插件进程代理），**不依赖** fund-helper 后端与 MongoDB
+
+**安装：**
+
+| IDE | 方式 | 链接 |
+| --- | ---- | ---- |
+
+| **IntelliJ IDEA / WebStorm / PyCharm 等** | 插件 zip | [下载 zip](https://github.com/ChinaCarlos/fund-helper/releases/download/jetbrains-v0.1.0/fund-helper-jetbrains-0.1.0.zip) |
+
+Release 页：[`jetbrains-v0.1.0`](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.0) · 文件 `fund-helper-jetbrains-0.1.0.zip`
+
+**Settings → Plugins → ⚙ → Install Plugin from Disk…** → 选择 zip → 重启 IDE。
+
+环境要求：IDE **2024.2+**（build 242+），需支持 JCEF。
+
+详见 [jetbrains-extension/README.md](/clients/jetbrains-extension)；架构见 [TECH.md §20](/developer/architecture#20-jetbrains-插件架构)。
 
 ### 桌面端（`desktop/`）
 
@@ -318,11 +349,14 @@ fund-helper/
 ├── web/                    # Web 应用（React SPA）
 ├── chrome-extension/       # 浏览器插件（CRXJS + React Popup）
 ├── vscode-extension/       # VS Code / Cursor 扩展（Webview + Extension Host）
+├── jetbrains-extension/    # JetBrains IDE 插件（JCEF + Kotlin）
 ├── desktop/                # 桌面端（Tauri + Rust）
 ├── docs-site/              # 文档中心（Rspress → GitHub Pages）
-├── assets/releases/        # 桌面端安装包（本地构建输出，见 README）
-├── publish-desktop.sh      # 桌面端发包脚本
+├── assets/releases/        # 客户端安装包（本地构建或 CI collect）
+├── publish-chrome.sh       # Chrome 发版脚本
 ├── publish-vscode.sh       # VS Code 扩展发版脚本
+├── publish-jetbrains.sh    # JetBrains 插件发版脚本
+├── publish-desktop.sh      # 桌面端发包脚本
 ├── publish-image.sh        # Docker 镜像发布脚本
 ├── TECH.md
 └── API_README.md           # 养基宝上游 API
@@ -332,13 +366,13 @@ fund-helper/
 
 ## 页面路由
 
-| 路径 | 说明 |
-|------|------|
-| `/` | 持仓 Dashboard |
-| `/market` | 市场基金排行 |
-| `/market/heatmap` | 板块热力图 |
-| `/admin/users` | 用户管理（仅管理员） |
-| `/login` | 账号密码登录 |
+| 路径              | 说明                 |
+| ----------------- | -------------------- |
+| `/`               | 持仓 Dashboard       |
+| `/market`         | 市场基金排行         |
+| `/market/heatmap` | 板块热力图           |
+| `/admin/users`    | 用户管理（仅管理员） |
+| `/login`          | 账号密码登录         |
 
 ---
 
@@ -346,35 +380,35 @@ fund-helper/
 
 ### 认证与持仓
 
-| 端点 | 说明 |
-|------|------|
-| `GET /api/health` | 健康检查 |
-| `GET /api/auth/status` | 登录状态（含 `yjb_bound`） |
-| `POST /api/auth/login` | 账号密码登录 |
-| `POST /api/auth/yjb/qrcode` | 养基宝绑定二维码 |
-| `GET /api/admin/users` | 用户列表（管理员） |
-| `GET /api/portfolio` | 持仓快照（需已绑定养基宝） |
-| `GET /api/income/line?collect=true` | 汇总收益曲线 |
-| `GET /api/funds/search?keyword=` | 搜索基金 |
+| 端点                                | 说明                       |
+| ----------------------------------- | -------------------------- |
+| `GET /api/health`                   | 健康检查                   |
+| `GET /api/auth/status`              | 登录状态（含 `yjb_bound`） |
+| `POST /api/auth/login`              | 账号密码登录               |
+| `POST /api/auth/yjb/qrcode`         | 养基宝绑定二维码           |
+| `GET /api/admin/users`              | 用户列表（管理员）         |
+| `GET /api/portfolio`                | 持仓快照（需已绑定养基宝） |
+| `GET /api/income/line?collect=true` | 汇总收益曲线               |
+| `GET /api/funds/search?keyword=`    | 搜索基金                   |
 
 ### 市场数据
 
-| 端点 | 说明 |
-|------|------|
-| `GET /api/market/rank/options` | 排行筛选项 |
-| `GET /api/market/rank` | 市场基金排行 |
-| `GET /api/market/heatmap` | 板块热力图 |
+| 端点                                | 说明         |
+| ----------------------------------- | ------------ |
+| `GET /api/market/rank/options`      | 排行筛选项   |
+| `GET /api/market/rank`              | 市场基金排行 |
+| `GET /api/market/heatmap`           | 板块热力图   |
 | `GET /api/market/fund/{code}/curve` | 基金收益曲线 |
-| `GET /api/market/sector/funds` | 板块关联基金 |
+| `GET /api/market/sector/funds`      | 板块关联基金 |
 
 ### 通知
 
-| 端点 | 说明 |
-|------|------|
+| 端点                     | 说明         |
+| ------------------------ | ------------ |
 | `GET /api/notify/config` | 读取通知配置 |
 | `PUT /api/notify/config` | 保存通知配置 |
-| `POST /api/notify/test` | 连通性测试 |
-| `POST /api/notify/push` | 推送持仓收益 |
+| `POST /api/notify/test`  | 连通性测试   |
+| `POST /api/notify/push`  | 推送持仓收益 |
 
 详见 [TECH.md](/developer/architecture)。
 

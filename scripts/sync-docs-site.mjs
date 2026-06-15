@@ -45,6 +45,8 @@ function rewriteLinks(content) {
     [/\]\(\.\/chrome-extension\/README\.md([^)]*)\)/g, '](/clients/chrome-extension$1)'],
     [/\]\(\.\.\/vscode-extension\/README\.md([^)]*)\)/g, '](/clients/vscode-extension$1)'],
     [/\]\(\.\/vscode-extension\/README\.md([^)]*)\)/g, '](/clients/vscode-extension$1)'],
+    [/\]\(\.\.\/jetbrains-extension\/README\.md([^)]*)\)/g, '](/clients/jetbrains-extension$1)'],
+    [/\]\(\.\/jetbrains-extension\/README\.md([^)]*)\)/g, '](/clients/jetbrains-extension$1)'],
     [/\]\(\.\.\/desktop\/README\.md([^)]*)\)/g, '](/clients/desktop$1)'],
     [/\]\(\.\/desktop\/README\.md([^)]*)\)/g, '](/clients/desktop$1)'],
     [/\]\(\.\.\/assets\/releases\/README\.md([^)]*)\)/g, '](/developer/release$1)'],

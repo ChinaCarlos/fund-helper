@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Fund Helper 扩展发版 CLI（Chrome + VS Code）
+ * Fund Helper 扩展发版 CLI（Chrome + VS Code + JetBrains）
  *
  * 用法:
  *   node scripts/release.mjs                          # 交互式菜单
@@ -8,11 +8,12 @@
  *   node scripts/release.mjs bump <product> patch|minor|major
  *   node scripts/release.mjs chrome [--local|--release|--collect]
  *   node scripts/release.mjs vscode [--local|--release|--collect|--marketplace]
+ *   node scripts/release.mjs jetbrains [--local|--release|--collect]
  *   node scripts/release.mjs all [--local|--release]
  *
  * 示例:
  *   node scripts/release.mjs bump chrome patch && node scripts/release.mjs chrome --release
- *   node scripts/release.mjs vscode --marketplace
+ *   node scripts/release.mjs jetbrains --release
  */
 
 import { spawnSync } from 'node:child_process';
@@ -26,11 +27,12 @@ import { readVersions } from './version.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
-const EXTENSION_PRODUCTS = ['chrome', 'vscode'];
+const EXTENSION_PRODUCTS = ['chrome', 'vscode', 'jetbrains'];
 
 const MODES = {
   chrome: ['--local', '--release', '--collect'],
   vscode: ['--local', '--release', '--collect', '--marketplace'],
+  jetbrains: ['--local', '--release', '--collect'],
   all: ['--local', '--release'],
 };
 
@@ -48,16 +50,19 @@ function usage() {
   node scripts/release.mjs bump <product> <level>  递增版本 (patch|minor|major)
   node scripts/release.mjs chrome [模式]           Chrome 浏览器插件
   node scripts/release.mjs vscode [模式]           VS Code / Cursor 扩展
+  node scripts/release.mjs jetbrains [模式]        JetBrains IDE 插件
   node scripts/release.mjs all [模式]              同时发版 chrome + vscode
 
 模式:
-  chrome   --local | --release | --collect
-  vscode   --local | --release | --collect | --marketplace
-  all      --local | --release
+  chrome     --local | --release | --collect
+  vscode     --local | --release | --collect | --marketplace
+  jetbrains  --local | --release | --collect
+  all        --local | --release
 
 快捷 pnpm 命令:
   pnpm release:chrome -- --release
   pnpm release:vscode -- --local
+  pnpm release:jetbrains -- --release
   pnpm release:extensions
 `);
 }
@@ -125,6 +130,12 @@ function cmdVscode(modeArg, versionArg) {
   runScript('publish-vscode.sh', args);
 }
 
+function cmdJetbrains(modeArg, versionArg) {
+  const mode = resolveMode('jetbrains', modeArg);
+  const args = versionArg ? [versionArg, mode] : [mode];
+  runScript('publish-jetbrains.sh', args);
+}
+
 function cmdAll(modeArg, versionArg) {
   const mode = resolveMode('all', modeArg);
   console.log('\n=== Chrome ===\n');
@@ -143,7 +154,9 @@ async function interactive() {
   const rl = readline.createInterface({ input, output });
 
   console.log('\n Fund Helper 扩展发版\n');
-  console.log(`  当前版本  chrome ${versions.chrome}  |  vscode ${versions.vscode}\n`);
+  console.log(
+    `  当前版本  chrome ${versions.chrome}  |  vscode ${versions.vscode}  |  jetbrains ${versions.jetbrains}\n`,
+  );
   console.log('  1) Chrome  本地打包 (--local)');
   console.log('  2) Chrome  触发 CI (--release)');
   console.log('  3) Chrome  下载 CI 产物 (--collect)');
@@ -151,11 +164,14 @@ async function interactive() {
   console.log('  5) VS Code  触发 CI (--release)');
   console.log('  6) VS Code  下载 CI 产物 (--collect)');
   console.log('  7) VS Code  上架 Marketplace (--marketplace)');
-  console.log('  8) 两者同时触发 CI (--release)');
+  console.log('  8) 两者同时触发 CI (--release) [chrome + vscode]');
   console.log('  9) bump patch 并 CI 发版（chrome + vscode）');
+  console.log(' 10) JetBrains  本地打包 (--local)');
+  console.log(' 11) JetBrains  触发 CI (--release)');
+  console.log(' 12) JetBrains  下载 CI 产物 (--collect)');
   console.log('  0) 退出\n');
 
-  const choice = await ask(rl, '请选择 [0-9]: ');
+  const choice = await ask(rl, '请选择 [0-12]: ');
   rl.close();
 
   switch (choice) {
@@ -187,6 +203,15 @@ async function interactive() {
       cmdBump('all', 'patch');
       cmdAll('--release');
       break;
+    case '10':
+      cmdJetbrains('--local');
+      break;
+    case '11':
+      cmdJetbrains('--release');
+      break;
+    case '12':
+      cmdJetbrains('--collect');
+      break;
     case '0':
       break;
     default:
@@ -209,7 +234,7 @@ function main() {
       cmdList();
       break;
     case 'bump':
-      if (!arg1 || !arg2) die('用法: bump <chrome|vscode|all> patch|minor|major');
+      if (!arg1 || !arg2) die('用法: bump <chrome|vscode|jetbrains|all> patch|minor|major');
       cmdBump(arg1, arg2);
       break;
     case 'chrome':
@@ -217,6 +242,9 @@ function main() {
       break;
     case 'vscode':
       cmdVscode(arg1, arg2);
+      break;
+    case 'jetbrains':
+      cmdJetbrains(arg1, arg2);
       break;
     case 'all':
       cmdAll(arg1, arg2);

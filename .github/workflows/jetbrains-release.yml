@@ -1,0 +1,110 @@
+name: JetBrains Plugin Release
+
+on:
+  push:
+    tags:
+      - 'jetbrains-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Plugin version (e.g. 0.1.0)'
+        required: true
+        default: '0.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#jetbrains-v}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=jetbrains-v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Building JetBrains plugin v${VERSION}"
+
+      - name: Sync version
+        run: node scripts/version.mjs set jetbrains "${{ steps.ver.outputs.version }}"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: jetbrains-extension/pnpm-lock.yaml
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: jetbrains-extension/**/gradle*
+
+      - name: Install webview dependencies
+        working-directory: jetbrains-extension
+        run: pnpm install --frozen-lockfile
+
+      - name: Build plugin
+        working-directory: jetbrains-extension
+        env:
+          CI: true
+        run: ./gradlew buildPlugin --no-daemon
+
+      - name: Verify artifact
+        shell: bash
+        run: |
+          ZIP="jetbrains-extension/build/distributions/fund-helper-jetbrains-${{ steps.ver.outputs.version }}.zip"
+          test -f "$ZIP"
+          cp "$ZIP" "fund-helper-jetbrains-${{ steps.ver.outputs.version }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jetbrains-plugin
+          path: fund-helper-jetbrains-*.zip
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Fund Helper JetBrains v${{ steps.ver.outputs.version }}
+          body: |
+            ## Fund Helper JetBrains 插件 v${{ steps.ver.outputs.version }}
+
+            ### 安装
+
+            1. 下载下方 `fund-helper-jetbrains-${{ steps.ver.outputs.version }}.zip`
+            2. JetBrains IDE → **Settings → Plugins → ⚙ → Install Plugin from Disk…**
+            3. 重启 IDE
+
+            ### 环境要求
+
+            - JetBrains IDE **2024.2+**（需支持 JCEF）
+            - 支持 IntelliJ IDEA / WebStorm / PyCharm / GoLand 等
+
+            ### 入口
+
+            - 左侧 Tool Window：**Fund Helper**
+            - 状态栏右下角：点击收益数字 → 打开底部持仓面板
+
+            文档: [jetbrains-extension/README.md](https://github.com/${{ github.repository }}/blob/main/jetbrains-extension/README.md)
+          files: fund-helper-jetbrains-*.zip
+          draft: false
+          prerelease: false

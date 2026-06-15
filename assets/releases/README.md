@@ -1,19 +1,19 @@
 # 客户端发布产物
 
-Chrome / VS Code / Desktop 三个客户端的安装包均由 **GitHub Actions** 构建。版本号统一由根目录 **`versions.json`** + **`scripts/version.mjs`** 管理。
+Chrome / VS Code / Desktop / JetBrains 四个客户端的安装包均可由 **GitHub Actions** 构建。版本号统一由根目录 **`versions.json`** + **`scripts/version.mjs`** 管理。
 
 ## 版本管理（统一入口）
 
 | 命令 | 说明 |
 |------|------|
-| `pnpm version:list` | 查看三个客户端当前版本 |
+| `pnpm version:list` | 查看四个客户端当前版本 |
 | `pnpm version:sync` | 将 `versions.json` 同步到各子项目 |
-| `pnpm version:bump chrome patch` | 自动 patch 并同步（vscode / desktop 同理） |
+| `pnpm version:bump chrome patch` | 自动 patch 并同步（vscode / desktop / jetbrains 同理） |
 | `node scripts/version.mjs set chrome 1.0.1` | 指定版本并同步 |
 
 发版脚本不传版本号时，会自动读取 `versions.json` 中对应产品的版本。
 
-### 扩展统一发版 CLI（Chrome + VS Code）
+### 扩展统一发版 CLI（Chrome + VS Code + JetBrains）
 
 ```bash
 ./publish-extensions.sh              # 交互式菜单
@@ -24,7 +24,8 @@ node scripts/release.mjs list
 node scripts/release.mjs bump chrome patch
 node scripts/release.mjs chrome --release
 node scripts/release.mjs vscode --local
-node scripts/release.mjs all --release    # 两者同时触发 CI
+node scripts/release.mjs jetbrains --release
+node scripts/release.mjs all --release    # chrome + vscode 同时触发 CI
 ```
 
 ---
@@ -98,3 +99,33 @@ export VSCE_PAT=xxx && ./publish-vscode.sh --marketplace
 非 VS Code 编辑器：`Cmd+Shift+P` → **Extensions: Install from VSIX…**
 
 安装说明：[vscode-extension/README.md](../vscode-extension/README.md#安装)
+
+---
+
+## JetBrains 插件（jetbrains-v*）
+
+<!-- fund-helper:version:jetbrains -->
+| 项 | 链接 |
+|----|------|
+| 当前版本 | `0.1.0`（见 `versions.json`） |
+| 构建 | [Actions → JetBrains Plugin Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/jetbrains-release.yml) |
+| 下载 | [Release jetbrains-v0.1.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.0) |
+<!-- /fund-helper:version:jetbrains -->
+
+**触发 CI：**
+
+```bash
+node scripts/version.mjs bump jetbrains patch   # 或 set jetbrains 0.1.1
+./publish-jetbrains.sh --release
+# 或打 tag: git tag -a jetbrains-v0.1.1 && git push origin jetbrains-v0.1.1
+```
+
+**本地打包：**
+
+```bash
+./publish-jetbrains.sh --local
+```
+
+产物：`fund-helper-jetbrains-{version}.zip` → IDE **Settings → Plugins → Install Plugin from Disk…**
+
+环境要求：JetBrains IDE 2024.2+（需 JCEF）。详见 [jetbrains-extension/README.md](../jetbrains-extension/README.md)。
