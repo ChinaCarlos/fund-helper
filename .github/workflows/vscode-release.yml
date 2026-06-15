@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Extension version (e.g. 0.1.1)'
+        description: 'Extension version (e.g. 0.1.2)'
         required: true
-        default: '0.1.1'
+        default: '0.1.2'
 
 permissions:
   contents: write
@@ -39,18 +39,8 @@ jobs:
           echo "tag=vscode-v${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Building VS Code extension v${VERSION}"
 
-      - name: Sync version in package.json
-        shell: bash
-        working-directory: vscode-extension
-        run: |
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = process.env.VERSION;
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-        env:
-          VERSION: ${{ steps.ver.outputs.version }}
+      - name: Sync version
+        run: node scripts/version.mjs set vscode "${{ steps.ver.outputs.version }}"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -77,6 +67,12 @@ jobs:
             --githubBranch main \
             --baseImagesUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/vscode-extension" \
             --out "../fund-helper-vscode-${{ steps.ver.outputs.version }}.vsix"
+
+      - name: Verify VSIX contains marketplace icon
+        run: |
+          VSIX="fund-helper-vscode-${{ steps.ver.outputs.version }}.vsix"
+          unzip -l "$VSIX" | grep -F 'extension/media/icon.png'
+          test "$(unzip -l "$VSIX" | grep -c 'extension/media/icon.png')" -ge 1
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

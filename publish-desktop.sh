@@ -21,11 +21,18 @@ RELEASES_DIR="$ROOT/assets/releases"
 GITHUB_REPO="${GITHUB_REPO:-ChinaCarlos/fund-helper}"
 WORKFLOW="desktop-release.yml"
 
-VERSION="${1:-}"
-MODE="${2:---release}"
+VERSION=""
+MODE="--release"
+
+if [[ $# -ge 1 && "$1" == --* ]]; then
+  MODE="$1"
+elif [[ $# -ge 1 ]]; then
+  VERSION="$1"
+  MODE="${2:---release}"
+fi
 
 if [[ -z "$VERSION" ]]; then
-  VERSION="$(node -p "require('$DESKTOP/package.json').version")"
+  VERSION="$(node "$ROOT/scripts/version.mjs" get desktop)"
 fi
 
 TAG="desktop-v${VERSION}"
@@ -35,23 +42,8 @@ log() { printf '==> %s\n' "$*"; }
 die() { printf '错误: %s\n' "$*" >&2; exit 1; }
 
 sync_version() {
-  log "同步版本号 → ${VERSION}"
-  node <<EOF
-const fs = require('fs');
-const pkgPath = '$DESKTOP/package.json';
-const tauriPath = '$DESKTOP/src-tauri/tauri.conf.json';
-const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-pkg.version = '$VERSION';
-fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
-const tauri = JSON.parse(fs.readFileSync(tauriPath, 'utf8'));
-tauri.version = '$VERSION';
-fs.writeFileSync(tauriPath, JSON.stringify(tauri, null, 2) + '\n');
-EOF
-  local cargo="$DESKTOP/src-tauri/Cargo.toml"
-  if grep -q '^version = ' "$cargo"; then
-    sed -i.bak "s/^version = \".*\"/version = \"${VERSION}\"/" "$cargo"
-    rm -f "${cargo}.bak"
-  fi
+  log "同步版本号 → ${VERSION}（versions.json + desktop）"
+  node "$ROOT/scripts/version.mjs" set desktop "$VERSION"
 }
 
 release_ci() {

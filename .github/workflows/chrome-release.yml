@@ -1,0 +1,92 @@
+name: Chrome Extension Release
+
+on:
+  push:
+    tags:
+      - 'chrome-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Extension version (e.g. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#chrome-v}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=chrome-v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Building Chrome extension v${VERSION}"
+
+      - name: Sync version
+        run: node scripts/version.mjs set chrome "${{ steps.ver.outputs.version }}"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build extension
+        run: pnpm --filter fund-helper-extension build
+
+      - name: Package ZIP
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          ZIP="fund-helper-chrome-${VERSION}.zip"
+          cd chrome-extension/dist
+          zip -r "../../${ZIP}" .
+          cd ../..
+          ls -la "$ZIP"
+          unzip -l "$ZIP" | grep -F 'manifest.json'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-zip
+          path: fund-helper-chrome-*.zip
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Fund Helper Chrome v${{ steps.ver.outputs.version }}
+          body: |
+            ## Fund Helper Chrome 浏览器插件 v${{ steps.ver.outputs.version }}
+
+            ### 安装
+
+            1. 下载下方 `fund-helper-chrome-${{ steps.ver.outputs.version }}.zip`
+            2. 解压到任意目录
+            3. 打开 `chrome://extensions` → 开启**开发者模式**
+            4. **加载已解压的扩展程序** → 选择解压后的文件夹
+
+            文档: [chrome-extension/README.md](https://github.com/${{ github.repository }}/blob/main/chrome-extension/README.md)
+          files: fund-helper-chrome-*.zip
+          draft: false
+          prerelease: false

@@ -11,6 +11,14 @@
     "build:chrome": "pnpm --filter fund-helper-extension build",
     "build:vscode": "pnpm --filter fund-helper-vscode build",
     "build:desktop": "pnpm --filter fund-helper-desktop tauri:build",
-    "install:all": "pnpm install"
+    "install:all": "pnpm install",
+    "version:list": "node scripts/version.mjs list",
+    "version:sync": "node scripts/version.mjs sync",
+    "version:get": "node scripts/version.mjs get",
+    "version:set": "node scripts/version.mjs set",
+    "version:bump": "node scripts/version.mjs bump",
+    "release:extensions": "node scripts/release.mjs",
+    "release:chrome": "./publish-chrome.sh",
+    "release:vscode": "./publish-vscode.sh"
   }
 }

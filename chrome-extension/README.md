@@ -78,6 +78,29 @@ pnpm build        # 类型检查 + 生产构建
 
 ---
 
+## 发版
+
+版本号由仓库根目录 **`versions.json`** 统一管理，发版前无需手动改 `package.json` / `manifest.config.ts`。
+
+```bash
+# 查看 / 递增版本
+pnpm version:list
+pnpm version:bump chrome patch
+
+# 本地打包 zip（或使用统一 CLI）
+./publish-chrome.sh --local
+# 或: pnpm release:chrome -- --local
+# 或: ./publish-extensions.sh
+
+# 触发 GitHub Actions 构建 Release
+./publish-chrome.sh --release
+```
+
+CI workflow：[`.github/workflows/chrome-release.yml`](../.github/workflows/chrome-release.yml)  
+产物说明：[`assets/releases/README.md`](../assets/releases/README.md)
+
+---
+
 ## 项目结构
 
 ```

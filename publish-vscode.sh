@@ -28,11 +28,18 @@ RELEASES_DIR="$ROOT/assets/releases/vscode"
 GITHUB_REPO="${GITHUB_REPO:-ChinaCarlos/fund-helper}"
 WORKFLOW="vscode-release.yml"
 
-VERSION="${1:-}"
-MODE="${2:---local}"
+VERSION=""
+MODE="--local"
+
+if [[ $# -ge 1 && "$1" == --* ]]; then
+  MODE="$1"
+elif [[ $# -ge 1 ]]; then
+  VERSION="$1"
+  MODE="${2:---local}"
+fi
 
 if [[ -z "$VERSION" ]]; then
-  VERSION="$(node -p "require('$EXT/package.json').version")"
+  VERSION="$(node "$ROOT/scripts/version.mjs" get vscode)"
 fi
 
 TAG="vscode-v${VERSION}"
@@ -43,14 +50,8 @@ log() { printf '==> %s\n' "$*"; }
 die() { printf '错误: %s\n' "$*" >&2; exit 1; }
 
 sync_version() {
-  log "同步版本号 → ${VERSION}（vscode-extension/package.json）"
-  node <<EOF
-const fs = require('fs');
-const pkgPath = '$EXT/package.json';
-const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-pkg.version = '$VERSION';
-fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
-EOF
+  log "同步版本号 → ${VERSION}（versions.json + vscode-extension）"
+  node "$ROOT/scripts/version.mjs" set vscode "$VERSION"
 }
 
 ensure_deps() {
@@ -73,6 +74,8 @@ build_vsix() {
     --baseImagesUrl "https://raw.githubusercontent.com/${GITHUB_REPO}/main/vscode-extension" \
     --out "$out_file")
   log "VSIX 大小: $(du -h "$out_file" | cut -f1)"
+  log "校验 Marketplace 图标…"
+  unzip -l "$out_file" | grep -F 'extension/media/icon.png' || die "VSIX 缺少 extension/media/icon.png，Marketplace 将显示默认占位图标"
 }
 
 write_manifest() {

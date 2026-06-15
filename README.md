@@ -19,8 +19,10 @@
 
 | 平台 | 文件 | 下载（CI 完成后） |
 |------|------|-------------------|
+<!-- fund-helper:version:desktop-download -->
 | **macOS（Universal，M + Intel）** | `Fund-Helper-0.1.0-macos.dmg` | [desktop-v0.1.0 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.0) |
 | **Windows** | `Fund-Helper-0.1.0-windows-setup.exe` | 同上 Release 页 |
+<!-- /fund-helper:version:desktop-download -->
 
 构建进度：[Actions → Desktop Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml)
 
@@ -250,9 +252,11 @@ pnpm install
 | 编辑器 | 方式 | 链接 |
 |--------|------|------|
 | **VS Code** | 扩展商店 | [Marketplace · Fund Helper](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) |
-| **Cursor / Trae / CodeBuddy / Qoder** | VSIX 文件 | [下载 VSIX](https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.1/fund-helper-vscode-0.1.1.vsix) |
+<!-- fund-helper:version:vscode-install -->
+| **Cursor / Trae / CodeBuddy / Qoder** | VSIX 文件 | [下载 VSIX](https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.2/fund-helper-vscode-0.1.2.vsix) |
 
-Release 页：[`vscode-v0.1.1`](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.1) · 文件 `fund-helper-vscode-0.1.1.vsix`
+Release 页：[`vscode-v0.1.2`](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.2) · 文件 `fund-helper-vscode-0.1.2.vsix`
+<!-- /fund-helper:version:vscode-install -->
 
 非 VS Code 编辑器：`Cmd+Shift+P` → **Extensions: Install from VSIX…** → 选择下载的 `.vsix` → 重载窗口。
 
