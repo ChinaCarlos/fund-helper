@@ -2043,7 +2043,7 @@ CI：`.github/workflows/vscode-release.yml`。
 
 ### 20.4 JCEF 资源与桥接
 
-1. **静态资源**：`FundHelperWebviewResources` 注册 `http://fundhelper/` 本地 handler（`JBCefLocalRequestHandler`），避免 JCEF 不支持 `jar:` URL。
+1. **静态资源**：`FundHelperWebviewResources` 注册 `http://fundhelper/` 本地 handler（vendored `FundHelperLocalRequestHandler`），避免 JCEF 不支持 `jar:` URL；兼容 IDE 2024.2 SDK 编译。
 2. **桥接注入**：`onLoadEnd` 注入 `JBCefJSQuery` 脚本 → `window.__jetbrainsBridge__.postMessage`。
 3. **状态同步**：页面加载完成后 `FundHelperController.resyncPanel()` 推送 session / portfolio，避免消息早于 JCEF 就绪而丢失。
 4. **主题**：`FundHelperThemeInjector` 读取 LaF 颜色写入 CSS 变量；`.rise` / `.fall` 使用固定 `#e51400` / `#008000`。
