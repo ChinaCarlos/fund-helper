@@ -58,12 +58,19 @@ jobs:
 
       - name: Install webview dependencies
         working-directory: jetbrains-extension
-        run: pnpm install --frozen-lockfile
+        env:
+          NODE_ENV: development
+        run: pnpm install --frozen-lockfile --config.production=false
+
+      - name: Build webview
+        working-directory: jetbrains-extension
+        run: pnpm run build:webview
 
       - name: Build plugin
         working-directory: jetbrains-extension
         env:
           CI: true
+          NODE_ENV: development
         run: ./gradlew buildPlugin --no-daemon
 
       - name: Verify artifact

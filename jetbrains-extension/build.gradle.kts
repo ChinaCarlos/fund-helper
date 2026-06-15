@@ -50,14 +50,29 @@ tasks {
     processResources {
         dependsOn("buildWebview")
     }
+    register<Exec>("installWebviewDeps") {
+        group = "build"
+        description = "Install webview npm dependencies when node_modules is missing"
+        workingDir = projectDir
+        onlyIf { !file("node_modules/.pnpm").exists() }
+        commandLine(
+            "pnpm", "install", "--frozen-lockfile", "--config.production=false",
+        )
+        inputs.file("package.json")
+        inputs.file("pnpm-lock.yaml")
+        outputs.dir("node_modules")
+    }
+
     register<Exec>("buildWebview") {
         group = "build"
         description = "Build React webview assets into src/main/resources/webview"
+        dependsOn("installWebviewDeps")
         workingDir = projectDir
         commandLine("pnpm", "run", "build:webview")
         inputs.dir("webview/src")
         inputs.file("vite.webview.config.ts")
         inputs.file("package.json")
+        inputs.file("pnpm-lock.yaml")
         outputs.dir("src/main/resources/webview")
         isIgnoreExitValue = false
     }
