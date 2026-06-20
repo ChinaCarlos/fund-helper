@@ -58,8 +58,8 @@
 | ---- | ---- | ----------------- |
 
 <!-- fund-helper:version:desktop-download -->
-| **macOS（Universal，M + Intel）** | `Fund-Helper-0.1.2-macos.dmg` | [desktop-v0.1.2 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.2) |
-| **Windows** | `Fund-Helper-0.1.2-windows-setup.exe` | 同上 Release 页 |
+| **macOS（Universal，M + Intel）** | `Fund-Helper-0.1.3-macos.dmg` | [desktop-v0.1.3 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.3) |
+| **Windows** | `Fund-Helper-0.1.3-windows-setup.exe` | 同上 Release 页 |
 <!-- /fund-helper:version:desktop-download -->
 
 构建进度：[Actions → Desktop Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml)

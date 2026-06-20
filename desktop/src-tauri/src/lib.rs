@@ -24,7 +24,7 @@ fn update_tray_title(app: tauri::AppHandle, income: f64, rate: f64) {
     #[cfg(target_os = "macos")]
     plugins::menu_bar::set_tray_title(&app, income, rate);
     #[cfg(not(target_os = "macos"))]
-    let _ = (income, rate);
+    let _ = (app, income, rate);
 }
 
 /// Called by the frontend on logout to clear the tray title.
@@ -32,6 +32,8 @@ fn update_tray_title(app: tauri::AppHandle, income: f64, rate: f64) {
 fn clear_tray_title(app: tauri::AppHandle) {
     #[cfg(target_os = "macos")]
     plugins::menu_bar::clear_tray_title(&app);
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

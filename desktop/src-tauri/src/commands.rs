@@ -77,6 +77,8 @@ pub fn logout(app: AppHandle, state: State<'_, AppState>) -> Result<(), CommandE
 
     #[cfg(target_os = "macos")]
     crate::plugins::menu_bar::clear_tray_title(&app);
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
 
     Ok(())
 }
@@ -102,6 +104,8 @@ pub async fn fetch_portfolio(
 
     #[cfg(target_os = "macos")]
     crate::plugins::menu_bar::sync_from_snapshot(&app, &snapshot);
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
 
     Ok(snapshot)
 }

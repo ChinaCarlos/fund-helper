@@ -58,7 +58,9 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         return Ok(());
     }
 
-    let _menu = build_tray_menu(app, "显示 Fund Helper", "退出")?;
+    #[cfg(not(target_os = "macos"))]
+    let menu = build_tray_menu(app, "显示 Fund Helper", "退出")?;
+
     let icon = tauri::include_image!("icons/tray-icon.png");
 
     let mut builder = TrayIconBuilder::with_id("main-tray")

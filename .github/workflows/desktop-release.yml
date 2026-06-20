@@ -9,7 +9,7 @@ on:
       version:
         description: 'Desktop version (e.g. 0.1.0)'
         required: true
-        default: '0.1.2'
+        default: '0.1.3'
 
 permissions:
   contents: write
