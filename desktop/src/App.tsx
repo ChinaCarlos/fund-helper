@@ -7,6 +7,7 @@ import { WindowFrame } from '@/components/window-frame';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AntdProvider } from '@/providers/antd-provider';
 import { loadNotificationConfigFromStorage } from '@/services/notificationConfig';
+import { clearTrayTitle } from '@/lib/tray-sync';
 import { isTauriRuntime } from '@/lib/tauri';
 import { api, warmupTauriApi } from '@/lib/tauri-api';
 import type { AuthStatus } from '@/types/portfolio';
@@ -14,10 +15,14 @@ import type { AuthStatus } from '@/types/portfolio';
 type AppPhase = 'boot' | 'login' | 'portfolio' | 'settings' | 'browser';
 
 function AppContent() {
-  const [phase, setPhase] = useState<AppPhase>(() => (isTauriRuntime() ? 'boot' : 'browser'));
+  const [phase, setPhase] = useState<AppPhase>('boot');
   const [auth, setAuth] = useState<AuthStatus | null>(null);
 
   const boot = useCallback(async () => {
+    if (!isTauriRuntime()) {
+      setPhase('browser');
+      return;
+    }
     try {
       const status = await api.getAuthStatus();
       await loadNotificationConfigFromStorage();
@@ -33,12 +38,8 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!isTauriRuntime()) return;
     warmupTauriApi();
     void boot();
-    void import('@tauri-apps/api/core').then(({ invoke }) =>
-      invoke('update_tray_menu', { showText: '显示 Fund Helper', quitText: '退出' }),
-    );
   }, [boot]);
 
   const handleLoggedIn = useCallback((status: AuthStatus) => {
@@ -47,6 +48,7 @@ function AppContent() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    void clearTrayTitle();
     setAuth(null);
     setPhase('login');
   }, []);

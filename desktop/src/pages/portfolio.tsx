@@ -6,6 +6,7 @@ import { IndexBar } from '@/components/portfolio/IndexBar';
 import { SummaryCard } from '@/components/portfolio/SummaryCard';
 import { api, isUnauthorized } from '@/lib/tauri-api';
 import { tryPushAfterRefresh } from '@/utils/notificationPush';
+import { syncTrayFromSnapshot } from '@/lib/tray-sync';
 import { PAGE_CONTENT_STYLE, PAGE_SCROLL_CONTENT_STYLE, PAGE_SHELL_STYLE } from '@/utils/pageLayout';
 import type { AuthStatus, PortfolioSnapshot } from '@/types/portfolio';
 
@@ -34,6 +35,7 @@ export function PortfolioPage({ auth, onLogout, onOpenSettings }: PortfolioPageP
     try {
       const data = await api.fetchPortfolio();
       setSnapshot(data);
+      void syncTrayFromSnapshot(data);
       void tryPushAfterRefresh();
     } catch (err) {
       if (isUnauthorized(err)) {

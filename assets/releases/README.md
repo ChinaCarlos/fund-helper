@@ -63,14 +63,14 @@ node scripts/version.mjs bump chrome patch   # 或 set chrome 1.0.1
 <!-- fund-helper:version:desktop -->
 | 项 | 链接 |
 |----|------|
-| 当前版本 | `0.1.1` |
+| 当前版本 | `0.1.2` |
 | 构建 | [Actions → Desktop Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml) |
-| 下载 | [Release desktop-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1) |
+| 下载 | [Release desktop-v0.1.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.2) |
 
 | 平台 | 文件名 |
 |------|--------|
-| macOS（Universal） | `Fund-Helper-0.1.1-macos.dmg` |
-| Windows | `Fund-Helper-0.1.1-windows-setup.exe` |
+| macOS（Universal） | `Fund-Helper-0.1.2-macos.dmg` |
+| Windows | `Fund-Helper-0.1.2-windows-setup.exe` |
 <!-- /fund-helper:version:desktop -->
 
 ```bash

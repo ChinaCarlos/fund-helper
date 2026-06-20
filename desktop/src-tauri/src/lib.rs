@@ -17,6 +17,23 @@ fn update_tray_menu(app: tauri::AppHandle, show_text: String, quit_text: String)
     plugins::system_tray::update_tray_menu(&app, &show_text, &quit_text)
 }
 
+/// Called by the frontend after every successful portfolio fetch to keep the
+/// tray title in sync.  income is in CNY, rate is a percentage (e.g. 2.34).
+#[tauri::command]
+fn update_tray_title(app: tauri::AppHandle, income: f64, rate: f64) {
+    #[cfg(target_os = "macos")]
+    plugins::menu_bar::set_tray_title(&app, income, rate);
+    #[cfg(not(target_os = "macos"))]
+    let _ = (income, rate);
+}
+
+/// Called by the frontend on logout to clear the tray title.
+#[tauri::command]
+fn clear_tray_title(app: tauri::AppHandle) {
+    #[cfg(target_os = "macos")]
+    plugins::menu_bar::clear_tray_title(&app);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -29,18 +46,42 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(plugins::system_tray::init())
         .setup(|app| {
             let state = AppState::new(app.handle())?;
             app.manage(state);
+
+            plugins::system_tray::setup_tray(app.handle())?;
+            #[cfg(target_os = "macos")]
+            if let Err(e) = plugins::menu_bar::init_popover(app.handle()) {
+                eprintln!("Failed to create menubar popover: {e}");
+            }
+
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 notify::scheduler::run(handle).await;
             });
+            #[cfg(target_os = "macos")]
+            {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    plugins::menu_bar::refresh_if_logged_in(&handle).await;
+                });
+            }
+            if let Some(window) = app.get_webview_window("main") {
+                let window_clone = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        let _ = window_clone.hide();
+                        api.prevent_close();
+                    }
+                });
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             update_tray_menu,
+            update_tray_title,
+            clear_tray_title,
             commands::create_qr,
             commands::poll_qr_state,
             commands::complete_qr_login,

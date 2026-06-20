@@ -8,11 +8,22 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
+  // Relative asset paths so secondary windows (menubar.html) work under Tauri asset protocol.
+  base: "./",
   plugins: [react(), tailwindcss()],
 
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        menubar: path.resolve(__dirname, "menubar.html"),
+      },
     },
   },
 

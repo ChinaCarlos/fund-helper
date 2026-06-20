@@ -11,13 +11,19 @@ declare global {
 }
 
 export function isTauriRuntime(): boolean {
-  return typeof window !== "undefined" && typeof window.__TAURI_INTERNALS__?.invoke === "function";
+  if (typeof window === "undefined") return false;
+  if (typeof window.__TAURI_INTERNALS__?.invoke === "function") return true;
+  const label = window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label;
+  return label === "main" || label === "menubar-popover";
 }
 
 export async function showMainWindow(): Promise<void> {
   if (!isTauriRuntime()) return;
   const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-  await getCurrentWebviewWindow().show();
+  const window = getCurrentWebviewWindow();
+  await window.show();
+  await window.unminimize();
+  await window.setFocus();
 }
 
 export async function getWebviewWindow() {

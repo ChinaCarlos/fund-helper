@@ -1083,13 +1083,18 @@ dependencies = [
 
 [[package]]
 name = "fund-helper-desktop"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "base64 0.22.1",
+ "block2",
  "chrono",
  "hex",
  "hmac",
  "md5",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-core-graphics",
+ "objc2-foundation",
  "reqwest 0.12.28",
  "rusqlite",
  "serde",

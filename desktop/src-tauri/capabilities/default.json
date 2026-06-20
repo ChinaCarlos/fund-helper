@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main"],
+  "windows": ["main", "menubar-popover"],
   "permissions": [
     "core:default",
     "core:window:allow-close",
@@ -23,6 +23,8 @@
     "core:path:default",
     "core:event:allow-emit",
     "core:event:allow-listen",
+    "core:window:allow-get-all-windows",
+    "core:webview:allow-get-all-webviews",
     "opener:default",
     "global-shortcut:default",
     "global-shortcut:allow-is-registered",

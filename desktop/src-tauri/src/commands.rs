@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::db::AppState;
 use crate::error::CommandError;
@@ -64,7 +64,7 @@ pub fn get_auth_status(state: State<'_, AppState>) -> Result<AuthStatus, Command
 }
 
 #[tauri::command]
-pub fn logout(state: State<'_, AppState>) -> Result<(), CommandError> {
+pub fn logout(app: AppHandle, state: State<'_, AppState>) -> Result<(), CommandError> {
     state
         .store
         .lock()
@@ -73,11 +73,19 @@ pub fn logout(state: State<'_, AppState>) -> Result<(), CommandError> {
             status_code: 500,
         })?
         .clear_session()
-        .map_err(CommandError::from)
+        .map_err(CommandError::from)?;
+
+    #[cfg(target_os = "macos")]
+    crate::plugins::menu_bar::clear_tray_title(&app);
+
+    Ok(())
 }
 
 #[tauri::command]
-pub async fn fetch_portfolio(state: State<'_, AppState>) -> Result<PortfolioSnapshot, CommandError> {
+pub async fn fetch_portfolio(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<PortfolioSnapshot, CommandError> {
     let token = state
         .store
         .lock()
@@ -88,9 +96,14 @@ pub async fn fetch_portfolio(state: State<'_, AppState>) -> Result<PortfolioSnap
         .require_token()
         .map_err(CommandError::from)?;
 
-    fetch_portfolio_snapshot(&token)
+    let snapshot = fetch_portfolio_snapshot(&token)
         .await
-        .map_err(CommandError::from)
+        .map_err(CommandError::from)?;
+
+    #[cfg(target_os = "macos")]
+    crate::plugins::menu_bar::sync_from_snapshot(&app, &snapshot);
+
+    Ok(snapshot)
 }
 
 #[tauri::command]
