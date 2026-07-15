@@ -13,7 +13,7 @@ Fund Helper 提供五种客户端，共享养基宝数据归一化逻辑（`nv_i
 | **Chrome** | 1.0.2 | [chrome-v1.0.2 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.2) |
 | **VS Code** | 0.1.3 | [Marketplace](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) · [VSIX Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) |
 <!-- fund-helper:version:jetbrains-row -->
-| **JetBrains** | 0.1.0 | [jetbrains-v0.1.0 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.0) |
+| **JetBrains** | 0.1.1 | [jetbrains-v0.1.1 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.1) |
 <!-- /fund-helper:version:jetbrains-row -->
 | **Desktop** | 0.1.1 | [desktop-v0.1.1 Release](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1) |
 

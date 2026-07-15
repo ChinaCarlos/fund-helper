@@ -11,6 +11,7 @@ import {
 import { fundRateTagKind, fundRateTagLabel } from "@/lib/fundRateTag";
 import {
   colorClass,
+  formatFundMetaLine,
   formatMoney,
   formatPercent,
   formatSigned,
@@ -252,10 +253,7 @@ export function PortfolioView({
                       {fund.short_name || fund.code}
                     </div>
                     <div className="fund-code">
-                      {fund.code}
-                      {fund.account_title && activeTab === "all"
-                        ? ` · ${fund.account_title}`
-                        : ""}
+                      {formatFundMetaLine(fund, activeTab === "all")}
                     </div>
                   </div>
                   <div className="fund-right">

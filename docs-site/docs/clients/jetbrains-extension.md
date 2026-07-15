@@ -48,14 +48,14 @@ Fund Helper 将养基宝持仓面板嵌入 IntelliJ IDEA / WebStorm / PyCharm �
 ### 从 GitHub Release 安装
 
 <!-- fund-helper:version:plugin-download -->
-**插件包下载（v0.1.0）：**
+**插件包下载（v0.1.1）：**
 
 | 来源 | 地址 |
 |------|------|
-| **GitHub Release（推荐）** | https://github.com/ChinaCarlos/fund-helper/releases/download/jetbrains-v0.1.0/fund-helper-jetbrains-0.1.0.zip |
-| **Release 页** | [jetbrains-v0.1.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.0) |
+| **GitHub Release（推荐）** | https://github.com/ChinaCarlos/fund-helper/releases/download/jetbrains-v0.1.1/fund-helper-jetbrains-0.1.1.zip |
+| **Release 页** | [jetbrains-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.1) |
 
-安装：**Settings → Plugins → ⚙ → Install Plugin from Disk…** → 选择 `fund-helper-jetbrains-0.1.0.zip`
+安装：**Settings → Plugins → ⚙ → Install Plugin from Disk…** → 选择 `fund-helper-jetbrains-0.1.1.zip`
 <!-- /fund-helper:version:plugin-download -->
 
 1. 下载上方 zip

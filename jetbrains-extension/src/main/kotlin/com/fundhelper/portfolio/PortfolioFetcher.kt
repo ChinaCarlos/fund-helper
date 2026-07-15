@@ -166,6 +166,13 @@ object PortfolioFetcher {
     }
 
     @Suppress("UNCHECKED_CAST")
+    private fun pickSector(fund: Map<String, Any?>): String? {
+        val sectorInfo = fund["sector_info"] as? Map<String, Any?> ?: return null
+        val name = sectorInfo["name"]?.toString()?.trim().orEmpty()
+        return name.ifEmpty { null }
+    }
+
+    @Suppress("UNCHECKED_CAST")
     private fun enrichFund(
         fund: Map<String, Any?>,
         accountId: Int,
@@ -184,6 +191,7 @@ object PortfolioFetcher {
             dayRate = normalized.dayRate,
             accountId = accountId,
             accountTitle = accountTitle,
+            sector = pickSector(fund),
             nvInfo = FundNvInfo(
                 dwjz = normalized.dwjz,
                 gzjz = normalized.gzjz,

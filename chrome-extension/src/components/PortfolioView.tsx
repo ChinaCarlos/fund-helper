@@ -12,7 +12,7 @@ import {
   fundRateTagKind,
   fundRateTagLabel,
 } from '@/lib/fundRateTag';
-import { colorClass, formatMoney, formatPercent, formatSigned } from '@/lib/format';
+import { colorClass, formatFundMetaLine, formatMoney, formatPercent, formatSigned } from '@/lib/format';
 import type { FundItem, PortfolioSnapshot, YjbSession } from '@/types/portfolio';
 
 function formatRefreshHint(updatedAt: string): string {
@@ -229,8 +229,7 @@ export function PortfolioView({
               <div>
                 <div className="fund-name">{fund.short_name || fund.code}</div>
                 <div className="fund-code">
-                  {fund.code}
-                  {fund.account_title && activeTab === 'all' ? ` · ${fund.account_title}` : ''}
+                  {formatFundMetaLine(fund, activeTab === 'all')}
                 </div>
               </div>
               <div className="fund-right">

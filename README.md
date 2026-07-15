@@ -31,7 +31,7 @@
 | 桌面端       | `0.1.1` | [Desktop Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml) | [desktop-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1)                                                                                              |
 
 <!-- fund-helper:version:jetbrains-client -->
-| JetBrains 插件 | `0.1.0` | [JetBrains Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/jetbrains-release.yml) | [jetbrains-v0.1.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.0) |
+| JetBrains 插件 | `0.1.1` | [JetBrains Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/jetbrains-release.yml) | [jetbrains-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.1) |
 <!-- /fund-helper:version:jetbrains-client -->
 
 发版命令：`./publish-chrome.sh --release` · `./publish-vscode.sh --release` · `./publish-jetbrains.sh --release` · `./publish-desktop.sh --release`（详见 [文档 · 发版与下载](https://chinacarlos.github.io/fund-helper/developer/release)）
@@ -293,9 +293,9 @@ pnpm install
 | **VS Code** | 扩展商店 | [Marketplace · Fund Helper](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) |
 
 <!-- fund-helper:version:vscode-install -->
-| **Cursor / Trae / CodeBuddy / Qoder** | VSIX 文件 | [下载 VSIX](https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.3/fund-helper-vscode-0.1.3.vsix) |
+| **Cursor / Trae / CodeBuddy / Qoder** | VSIX 文件 | [下载 VSIX](https://github.com/ChinaCarlos/fund-helper/releases/download/vscode-v0.1.4/fund-helper-vscode-0.1.4.vsix) |
 
-Release 页：[`vscode-v0.1.3`](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) · 文件 `fund-helper-vscode-0.1.3.vsix`
+Release 页：[`vscode-v0.1.4`](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.4) · 文件 `fund-helper-vscode-0.1.4.vsix`
 <!-- /fund-helper:version:vscode-install -->
 
 非 VS Code 编辑器：`Cmd+Shift+P` → **Extensions: Install from VSIX…** → 选择下载的 `.vsix` → 重载窗口。
@@ -317,9 +317,9 @@ Release 页：[`vscode-v0.1.3`](https://github.com/ChinaCarlos/fund-helper/relea
 | --- | ---- | ---- |
 
 <!-- fund-helper:version:jetbrains-install -->
-| **IntelliJ IDEA / WebStorm / PyCharm 等** | 插件 zip | [下载 zip](https://github.com/ChinaCarlos/fund-helper/releases/download/jetbrains-v0.1.0/fund-helper-jetbrains-0.1.0.zip) |
+| **IntelliJ IDEA / WebStorm / PyCharm 等** | 插件 zip | [下载 zip](https://github.com/ChinaCarlos/fund-helper/releases/download/jetbrains-v0.1.1/fund-helper-jetbrains-0.1.1.zip) |
 
-Release 页：[`jetbrains-v0.1.0`](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.0) · 文件 `fund-helper-jetbrains-0.1.0.zip`
+Release 页：[`jetbrains-v0.1.1`](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.1) · 文件 `fund-helper-jetbrains-0.1.1.zip`
 <!-- /fund-helper:version:jetbrains-install -->
 
 **Settings → Plugins → ⚙ → Install Plugin from Disk…** → 选择 zip → 重启 IDE。

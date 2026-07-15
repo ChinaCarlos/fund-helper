@@ -14,6 +14,15 @@ function normalizeIndexDir(dirVal: number, divVal: number): number {
   return dirVal;
 }
 
+function pickSector(fund: Record<string, unknown>): string | undefined {
+  const sectorInfo = fund.sector_info as Record<string, unknown> | undefined;
+  const name = sectorInfo?.name;
+  if (typeof name === 'string' && name.trim()) {
+    return name.trim();
+  }
+  return undefined;
+}
+
 function enrichFund(
   fund: Record<string, unknown>,
   accountId: number,
@@ -32,6 +41,7 @@ function enrichFund(
     day_rate: normalized.dayRate,
     account_id: accountId,
     account_title: accountTitle,
+    sector: pickSector(fund),
     nv_info: {
       dwjz: normalized.dwjz,
       gzjz: normalized.gzjz,

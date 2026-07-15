@@ -35,9 +35,9 @@ node scripts/release.mjs all --release    # chrome + vscode 同时触发 CI
 <!-- fund-helper:version:chrome -->
 | 项 | 链接 |
 |----|------|
-| 当前版本 | `1.0.2`（见 `versions.json`） |
+| 当前版本 | `1.0.3`（见 `versions.json`） |
 | 构建 | [Actions → Chrome Extension Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/chrome-release.yml) |
-| 下载 | [Release chrome-v1.0.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.2) |
+| 下载 | [Release chrome-v1.0.3](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.3) |
 <!-- /fund-helper:version:chrome -->
 
 **触发 CI：**
@@ -85,9 +85,9 @@ node scripts/version.mjs bump chrome patch   # 或 set chrome 1.0.1
 <!-- fund-helper:version:vscode -->
 | 项 | 链接 |
 |----|------|
-| 当前版本 | `0.1.3` |
+| 当前版本 | `0.1.4` |
 | Marketplace | [Fund Helper](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) |
-| VSIX 下载 | [Release vscode-v0.1.3](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) |
+| VSIX 下载 | [Release vscode-v0.1.4](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.4) |
 <!-- /fund-helper:version:vscode -->
 
 ```bash
@@ -107,9 +107,9 @@ export VSCE_PAT=xxx && ./publish-vscode.sh --marketplace
 <!-- fund-helper:version:jetbrains -->
 | 项 | 链接 |
 |----|------|
-| 当前版本 | `0.1.0`（见 `versions.json`） |
+| 当前版本 | `0.1.1`（见 `versions.json`） |
 | 构建 | [Actions → JetBrains Plugin Release](https://github.com/ChinaCarlos/fund-helper/actions/workflows/jetbrains-release.yml) |
-| 下载 | [Release jetbrains-v0.1.0](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.0) |
+| 下载 | [Release jetbrains-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.1) |
 <!-- /fund-helper:version:jetbrains -->
 
 **触发 CI：**

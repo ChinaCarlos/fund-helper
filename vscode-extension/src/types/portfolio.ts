@@ -19,6 +19,8 @@ export interface FundItem {
   day_rate: number;
   account_id?: number;
   account_title?: string;
+  /** 养基宝 sector_info.name，如「机器人」「半导体」 */
+  sector?: string | null;
   nv_info?: FundNvInfo;
 }
 

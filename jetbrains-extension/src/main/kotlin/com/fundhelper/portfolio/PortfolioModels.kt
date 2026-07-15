@@ -22,6 +22,7 @@ data class FundItem(
     @SerializedName("day_rate") val dayRate: Double = 0.0,
     @SerializedName("account_id") val accountId: Int? = null,
     @SerializedName("account_title") val accountTitle: String? = null,
+    val sector: String? = null,
     @SerializedName("nv_info") val nvInfo: FundNvInfo? = null,
 )
 
