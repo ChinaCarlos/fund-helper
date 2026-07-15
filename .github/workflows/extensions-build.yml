@@ -1,0 +1,204 @@
+name: Extensions Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'chrome-extension/**'
+      - 'vscode-extension/**'
+      - 'jetbrains-extension/**'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+      - 'versions.json'
+      - 'scripts/version.mjs'
+      - '.github/workflows/extensions-build.yml'
+  pull_request:
+    paths:
+      - 'chrome-extension/**'
+      - 'vscode-extension/**'
+      - 'jetbrains-extension/**'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+      - 'versions.json'
+      - 'scripts/version.mjs'
+      - '.github/workflows/extensions-build.yml'
+  workflow_dispatch:
+    inputs:
+      chrome:
+        description: 'Build Chrome extension'
+        type: boolean
+        default: true
+      vscode:
+        description: 'Build VS Code extension'
+        type: boolean
+        default: true
+      jetbrains:
+        description: 'Build JetBrains plugin'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extensions-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chrome:
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      inputs.chrome
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: echo "version=$(node scripts/version.mjs get chrome)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Chrome extension
+        run: pnpm --filter fund-helper-extension build
+
+      - name: Package ZIP
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          ZIP="fund-helper-chrome-${VERSION}.zip"
+          cd chrome-extension/dist
+          zip -r "../../${ZIP}" .
+          cd ../..
+          ls -la "$ZIP"
+          unzip -l "$ZIP" | grep -F 'manifest.json'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-zip-${{ steps.ver.outputs.version }}
+          path: fund-helper-chrome-*.zip
+          if-no-files-found: error
+
+  vscode:
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      inputs.vscode
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: echo "version=$(node scripts/version.mjs get vscode)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build VS Code extension
+        run: pnpm --filter fund-helper-vscode build
+
+      - name: Package VSIX
+        working-directory: vscode-extension
+        run: |
+          npx --yes @vscode/vsce@latest package \
+            --no-dependencies \
+            --githubBranch main \
+            --baseImagesUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/vscode-extension" \
+            --out "../fund-helper-vscode-${{ steps.ver.outputs.version }}.vsix"
+
+      - name: Verify VSIX contains marketplace icon
+        run: |
+          VSIX="fund-helper-vscode-${{ steps.ver.outputs.version }}.vsix"
+          unzip -l "$VSIX" | grep -F 'extension/media/icon.png'
+          test "$(unzip -l "$VSIX" | grep -c 'extension/media/icon.png')" -ge 1
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-vsix-${{ steps.ver.outputs.version }}
+          path: fund-helper-vscode-*.vsix
+          if-no-files-found: error
+
+  jetbrains:
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      inputs.jetbrains
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: echo "version=$(node scripts/version.mjs get jetbrains)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: jetbrains-extension/**/gradle*
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build webview
+        run: pnpm --filter fund-helper-jetbrains-webview run build:webview
+
+      - name: Build JetBrains plugin
+        working-directory: jetbrains-extension
+        env:
+          CI: true
+        run: ./gradlew buildPlugin --no-daemon -x buildWebview -x installWebviewDeps
+
+      - name: Package plugin ZIP
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          BUILT="jetbrains-extension/build/distributions/fund-helper-jetbrains-${VERSION}.zip"
+          test -f "$BUILT"
+          cp "$BUILT" "fund-helper-jetbrains-${VERSION}.zip"
+          ls -la "fund-helper-jetbrains-${VERSION}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jetbrains-plugin-${{ steps.ver.outputs.version }}
+          path: fund-helper-jetbrains-*.zip
+          if-no-files-found: error
