@@ -1,3 +1,5 @@
+
+
 <div align="center">
 
 # Fund Helper
@@ -35,7 +37,7 @@
 | ------------ | ------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Chrome 插件  | `1.0.2` | [Chrome Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/chrome-release.yml)   | [chrome-v1.0.2](https://github.com/ChinaCarlos/fund-helper/releases/tag/chrome-v1.0.2)                                                                                                |
 | VS Code 扩展 | `0.1.3` | [VS Code Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/vscode-release.yml)  | [Marketplace](https://marketplace.visualstudio.com/items?itemName=fund-helper-org.fund-helper-vscode) · [VSIX](https://github.com/ChinaCarlos/fund-helper/releases/tag/vscode-v0.1.3) |
-| 桌面端       | `0.1.1` | [Desktop Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml) | [desktop-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.1)                                                                                              |
+| 桌面端       | `0.1.3` | [Desktop Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/desktop-release.yml) | [desktop-v0.1.3](https://github.com/ChinaCarlos/fund-helper/releases/tag/desktop-v0.1.3)                                                                                              |
 
 <!-- fund-helper:version:jetbrains-client -->
 | JetBrains 插件 | `0.1.1` | [JetBrains Release CI](https://github.com/ChinaCarlos/fund-helper/actions/workflows/jetbrains-release.yml) | [jetbrains-v0.1.1](https://github.com/ChinaCarlos/fund-helper/releases/tag/jetbrains-v0.1.1) |
